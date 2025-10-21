@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/data.c		Abstract Data
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -111,7 +105,7 @@ struct nl_data *nl_data_clone(const struct nl_data *src)
 int nl_data_append(struct nl_data *data, const void *buf, size_t size)
 {
 	if (size > 0) {
-		void *d_data = realloc(data->d_data, data->d_size + size);
+		char *d_data = realloc(data->d_data, data->d_size + size);
 		if (!d_data)
 			return -NLE_NOMEM;
 

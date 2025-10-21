@@ -1,4 +1,5 @@
 libnl-nf-3.so.200 libnl-nf-3-200 #MINVER#
+* Build-Depends-Packages: libnl-nf-3-dev, libnl3-dev
  ct_obj_ops@Base 3.2.7
  exp_obj_ops@Base 3.2.21
  log_msg_obj_ops@Base 3.2.7
@@ -148,16 +149,22 @@ libnl-nf-3.so.200 libnl-nf-3-200 #MINVER#
  nfnl_log_get_alloc_size@Base 3.2.7
  nfnl_log_get_copy_mode@Base 3.2.7
  nfnl_log_get_copy_range@Base 3.2.7
+ nfnl_log_get_flags@Base 3.7.0
  nfnl_log_get_flush_timeout@Base 3.2.7
  nfnl_log_get_group@Base 3.2.7
  nfnl_log_get_queue_threshold@Base 3.2.7
  nfnl_log_msg_alloc@Base 3.2.7
  nfnl_log_msg_get@Base 3.2.7
+ nfnl_log_msg_get_ct@Base 3.7.0
+ nfnl_log_msg_get_ct_info@Base 3.7.0
  nfnl_log_msg_get_family@Base 3.2.7
  nfnl_log_msg_get_gid@Base 3.2.7
  nfnl_log_msg_get_hook@Base 3.2.7
  nfnl_log_msg_get_hwaddr@Base 3.2.7
+ nfnl_log_msg_get_hwheader@Base 3.7.0
+ nfnl_log_msg_get_hwlen@Base 3.7.0
  nfnl_log_msg_get_hwproto@Base 3.2.7
+ nfnl_log_msg_get_hwtype@Base 3.7.0
  nfnl_log_msg_get_indev@Base 3.2.7
  nfnl_log_msg_get_mark@Base 3.2.7
  nfnl_log_msg_get_outdev@Base 3.2.7
@@ -169,12 +176,22 @@ libnl-nf-3.so.200 libnl-nf-3-200 #MINVER#
  nfnl_log_msg_get_seq_global@Base 3.2.7
  nfnl_log_msg_get_timestamp@Base 3.2.7
  nfnl_log_msg_get_uid@Base 3.2.7
+ nfnl_log_msg_get_vlan_cfi@Base 3.7.0
+ nfnl_log_msg_get_vlan_id@Base 3.7.0
+ nfnl_log_msg_get_vlan_prio@Base 3.7.0
+ nfnl_log_msg_get_vlan_proto@Base 3.7.0
+ nfnl_log_msg_get_vlan_tag@Base 3.7.0
  nfnl_log_msg_put@Base 3.2.7
+ nfnl_log_msg_set_ct@Base 3.7.0
+ nfnl_log_msg_set_ct_info@Base 3.7.0
  nfnl_log_msg_set_family@Base 3.2.7
  nfnl_log_msg_set_gid@Base 3.2.7
  nfnl_log_msg_set_hook@Base 3.2.7
  nfnl_log_msg_set_hwaddr@Base 3.2.7
+ nfnl_log_msg_set_hwheader@Base 3.7.0
+ nfnl_log_msg_set_hwlen@Base 3.7.0
  nfnl_log_msg_set_hwproto@Base 3.2.7
+ nfnl_log_msg_set_hwtype@Base 3.7.0
  nfnl_log_msg_set_indev@Base 3.2.7
  nfnl_log_msg_set_mark@Base 3.2.7
  nfnl_log_msg_set_outdev@Base 3.2.7
@@ -186,13 +203,22 @@ libnl-nf-3.so.200 libnl-nf-3-200 #MINVER#
  nfnl_log_msg_set_seq_global@Base 3.2.7
  nfnl_log_msg_set_timestamp@Base 3.2.7
  nfnl_log_msg_set_uid@Base 3.2.7
+ nfnl_log_msg_set_vlan_proto@Base 3.7.0
+ nfnl_log_msg_set_vlan_tag@Base 3.7.0
+ nfnl_log_msg_test_ct@Base 3.7.0
+ nfnl_log_msg_test_ct_info@Base 3.7.0
  nfnl_log_msg_test_gid@Base 3.2.7
  nfnl_log_msg_test_hook@Base 3.2.7
+ nfnl_log_msg_test_hwheader@Base 3.7.0
+ nfnl_log_msg_test_hwlen@Base 3.7.0
  nfnl_log_msg_test_hwproto@Base 3.2.7
+ nfnl_log_msg_test_hwtype@Base 3.7.0
  nfnl_log_msg_test_mark@Base 3.2.7
  nfnl_log_msg_test_seq@Base 3.2.7
  nfnl_log_msg_test_seq_global@Base 3.2.7
  nfnl_log_msg_test_uid@Base 3.2.7
+ nfnl_log_msg_test_vlan_proto@Base 3.7.0
+ nfnl_log_msg_test_vlan_tag@Base 3.7.0
  nfnl_log_pf_bind@Base 3.2.7
  nfnl_log_pf_unbind@Base 3.2.7
  nfnl_log_put@Base 3.2.7
@@ -297,6 +323,7 @@ libnl-nf-3.so.200 libnl-nf-3-200 #MINVER#
  nfnlmsg_alloc_simple@Base 3.2.7
  nfnlmsg_ct_group@Base 3.2.7
  nfnlmsg_ct_parse@Base 3.2.7
+ nfnlmsg_ct_parse_nested@Base 3.7.0
  nfnlmsg_exp_group@Base 3.2.21
  nfnlmsg_exp_parse@Base 3.2.21
  nfnlmsg_family@Base 3.2.7

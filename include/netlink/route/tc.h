@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/route/tc.h		Traffic Control
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2011 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -109,6 +103,8 @@ extern char *		rtnl_tc_handle2str(uint32_t, char *, size_t);
 extern int		rtnl_tc_str2handle(const char *, uint32_t *);
 extern int		rtnl_classid_generate(const char *, uint32_t *,
 					      uint32_t);
+extern void		rtnl_tc_set_chain(struct rtnl_tc *, uint32_t);
+extern int              rtnl_tc_get_chain(struct rtnl_tc *, uint32_t *);
 
 #ifdef __cplusplus
 }

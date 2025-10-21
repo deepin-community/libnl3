@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink-private/types.h	Netlink Types (Private)
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  * Copyright (c) 2013 Sassano Systems LLC <joe@sassanosystems.com>
  */
@@ -30,7 +24,12 @@
 #include <linux/tc_act/tc_mirred.h>
 #include <linux/tc_act/tc_skbedit.h>
 #include <linux/tc_act/tc_gact.h>
+#include <linux/tc_act/tc_vlan.h>
 #include <linux/sock_diag.h>
+#include <linux/fib_rules.h>
+#include <linux/if_ether.h>
+
+#include <netinet/in.h>
 
 #define NL_SOCK_PASSCRED	(1<<1)
 #define NL_OWN_PORT		(1<<2)
@@ -213,6 +212,7 @@ struct rtnl_link
 	uint8_t				l_linkmode;
 	/* 2 byte hole */
 	char *				l_info_kind;
+	char *				l_info_slave_kind;
 	struct rtnl_link_info_ops *	l_info_ops;
 	void *				l_af_data[AF_MAX];
 	void *				l_info;
@@ -358,6 +358,8 @@ struct rtnl_rule
 	uint8_t		r_action;
 	uint8_t		r_dsfield; /* ipv4 only */
 	uint8_t		r_l3mdev;
+	uint8_t		r_protocol; /* protocol that installed rule */
+	uint8_t		r_ip_proto; /* IP/IPv6 protocol */
 	uint32_t	r_table;
 	uint32_t	r_flags;
 	uint32_t	r_prio;
@@ -369,6 +371,9 @@ struct rtnl_rule
 	struct nl_addr *r_dst;
 	char		r_iifname[IFNAMSIZ];
 	char		r_oifname[IFNAMSIZ];
+
+	struct fib_rule_port_range	r_sport;
+	struct fib_rule_port_range	r_dport;
 };
 
 struct rtnl_neightbl_parms
@@ -487,11 +492,11 @@ struct rtnl_neightbl
 
 struct rtnl_ratespec
 {
-	uint8_t			rs_cell_log;
+	uint64_t		rs_rate64;
 	uint16_t		rs_overhead;
 	int16_t			rs_cell_align;
 	uint16_t		rs_mpu;
-	uint32_t		rs_rate;
+	uint8_t			rs_cell_log;
 };
 
 struct rtnl_tstats
@@ -535,7 +540,8 @@ struct rtnl_tstats
 	struct nl_data *	pre ##_subdata;		\
 	struct rtnl_link *	pre ##_link;		\
 	struct rtnl_tc_ops *	pre ##_ops;		\
-	enum rtnl_tc_type	pre ##_type
+	enum rtnl_tc_type	pre ##_type;		\
+	uint32_t		pre ##_chain
 
 struct rtnl_tc
 {
@@ -597,6 +603,35 @@ struct rtnl_u32
 	struct nl_data *	cu_police;
 	char			cu_indev[IFNAMSIZ];
 	int			cu_mask;
+};
+
+struct rtnl_mall
+{
+	uint32_t         m_classid;
+	uint32_t         m_flags;
+	struct rtnl_act *m_act;
+	int              m_mask;
+};
+
+struct rtnl_flower
+{
+	struct rtnl_act *cf_act;
+	int              cf_mask;
+	uint32_t         cf_flags;
+	uint16_t         cf_proto;
+	uint16_t         cf_vlan_id;
+	uint16_t         cf_vlan_ethtype;
+	uint8_t          cf_vlan_prio;
+	uint8_t          cf_src_mac[ETH_ALEN];
+	uint8_t          cf_src_mac_mask[ETH_ALEN];
+	uint8_t          cf_dst_mac[ETH_ALEN];
+	uint8_t          cf_dst_mac_mask[ETH_ALEN];
+	in_addr_t        cf_ipv4_src;
+	in_addr_t        cf_ipv4_src_mask;
+	in_addr_t        cf_ipv4_dst;
+	in_addr_t        cf_ipv4_dst_mask;
+	uint8_t          cf_ip_dscp;
+	uint8_t          cf_ip_dscp_mask;
 };
 
 struct rtnl_cgroup
@@ -663,6 +698,20 @@ struct rtnl_prio
 	uint32_t	qp_bands;
 	uint8_t		qp_priomap[TC_PRIO_MAX+1];
 	uint32_t	qp_mask;
+};
+
+struct rtnl_mqprio
+{
+        uint8_t         qm_num_tc;
+        uint8_t         qm_prio_map[TC_QOPT_BITMASK + 1];
+        uint8_t         qm_hw;
+        uint16_t        qm_count[TC_QOPT_MAX_QUEUE];
+        uint16_t        qm_offset[TC_QOPT_MAX_QUEUE];
+        uint16_t        qm_mode;
+        uint16_t        qm_shaper;
+        uint64_t        qm_min_rate[TC_QOPT_MAX_QUEUE];
+        uint64_t        qm_max_rate[TC_QOPT_MAX_QUEUE];
+        uint32_t        qm_mask;
 };
 
 struct rtnl_tbf
@@ -984,6 +1033,14 @@ struct nfnl_log_msg {
 	uint32_t		log_msg_gid;
 	uint32_t		log_msg_seq;
 	uint32_t		log_msg_seq_global;
+	uint16_t		log_msg_hwtype;
+	uint16_t		log_msg_hwlen;
+	void *			log_msg_hwheader;
+	int			log_msg_hwheader_len;
+	uint16_t		log_msg_vlan_tag;
+	uint16_t		log_msg_vlan_proto;
+	uint32_t		log_msg_ct_info;
+	struct nfnl_ct *	log_msg_ct;
 };
 
 struct nfnl_queue {
@@ -1206,6 +1263,11 @@ struct xfrmnl_encap_tmpl {
 	struct nl_addr* encap_oa;
 };
 
+struct xfrmnl_user_offload {
+	int             ifindex;
+	uint8_t         flags;
+};
+
 struct xfrmnl_sa {
 	NLHDR_COMMON
 
@@ -1235,6 +1297,7 @@ struct xfrmnl_sa {
 	struct xfrmnl_replay_state      replay_state;
 	struct xfrmnl_replay_state_esn* replay_state_esn;
 	uint8_t                         hard;
+	struct xfrmnl_user_offload*     user_offload;
 };
 
 struct xfrmnl_usersa_flush {
@@ -1298,4 +1361,28 @@ struct xfrmnl_sp {
 	struct xfrmnl_mark              mark;
 };
 
+struct rtnl_vlan
+{
+	struct tc_vlan v_parm;
+	uint16_t       v_vid;
+	uint16_t       v_proto;
+	uint8_t        v_prio;
+	uint32_t       v_flags;
+};
+
+struct rtnl_mdb {
+	NLHDR_COMMON
+	uint32_t ifindex;
+
+	struct nl_list_head mdb_entry_list;
+};
+
+struct rtnl_mdb_entry {
+	struct nl_list_head mdb_list;
+	struct nl_addr *addr;
+	uint32_t ifindex;
+	uint16_t vid;
+	uint16_t proto;
+	uint8_t state;
+};
 #endif

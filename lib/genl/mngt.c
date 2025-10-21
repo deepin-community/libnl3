@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/genl/mngt.c		Generic Netlink Management
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -26,6 +20,8 @@
 #include <netlink/genl/ctrl.h>
 #include <netlink/utils.h>
 
+#include "netlink-private/utils.h"
+
 /** @cond SKIP */
 
 static NL_LIST_HEAD(genl_ops_list);
@@ -45,41 +41,45 @@ static struct genl_cmd *lookup_cmd(struct genl_ops *ops, int cmd_id)
 }
 
 static int cmd_msg_parser(struct sockaddr_nl *who, struct nlmsghdr *nlh,
-			  struct genl_ops *ops, struct nl_cache_ops *cache_ops, void *arg)
+                          struct genl_ops *ops, struct nl_cache_ops *cache_ops, void *arg)
 {
+	_nl_auto_free struct nlattr **tb_free = NULL;
 	int err;
 	struct genlmsghdr *ghdr;
 	struct genl_cmd *cmd;
+	struct nlattr **tb;
 
 	ghdr = genlmsg_hdr(nlh);
 
-	if (!(cmd = lookup_cmd(ops, ghdr->cmd))) {
-		err = -NLE_MSGTYPE_NOSUPPORT;
-		goto errout;
-	}
+	if (!(cmd = lookup_cmd(ops, ghdr->cmd)))
+		return -NLE_MSGTYPE_NOSUPPORT;
 
 	if (cmd->c_msg_parser == NULL)
-		err = -NLE_OPNOTSUPP;
-	else {
-		struct nlattr *tb[cmd->c_maxattr + 1];
+		return -NLE_OPNOTSUPP;
+
+	tb = _nl_malloc_maybe_a (300, (((size_t) cmd->c_maxattr) + 1u) * sizeof (struct nlattr *), &tb_free);
+	if (!tb)
+		return -NLE_NOMEM;
+
+	err = nlmsg_parse(nlh,
+	                  GENL_HDRSIZE(ops->o_hdrsize),
+	                  tb,
+	                  cmd->c_maxattr,
+	                  cmd->c_attr_policy);
+	if (err < 0)
+		return err;
+
+	{
 		struct genl_info info = {
-			.who = who,
-			.nlh = nlh,
+			.who     = who,
+			.nlh     = nlh,
 			.genlhdr = ghdr,
 			.userhdr = genlmsg_user_hdr(ghdr),
-			.attrs = tb,
+			.attrs   = tb,
 		};
 
-		err = nlmsg_parse(nlh, GENL_HDRSIZE(ops->o_hdrsize), tb, cmd->c_maxattr,
-				  cmd->c_attr_policy);
-		if (err < 0)
-			goto errout;
-
-		err = cmd->c_msg_parser(cache_ops, cmd, &info, arg);
+		return cmd->c_msg_parser(cache_ops, cmd, &info, arg);
 	}
-errout:
-	return err;
-
 }
 
 static int genl_msg_parser(struct nl_cache_ops *ops, struct sockaddr_nl *who,
@@ -126,13 +126,13 @@ char *genl_op2name(int family, int op, char *buf, size_t len)
 			cmd = &ops->o_cmds[i];
 
 			if (cmd->c_id == op) {
-				strncpy(buf, cmd->c_name, len - 1);
+				_nl_strncpy_trunc(buf, cmd->c_name, len);
 				return buf;
 			}
 		}
 	}
 
-	strncpy(buf, "unknown", len - 1);
+	_nl_strncpy_trunc(buf, "unknown", len);
 	return NULL;
 }
 

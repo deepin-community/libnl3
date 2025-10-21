@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/version.h	Versioning Information
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2008-2011 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -14,11 +8,11 @@
 
 /* Compile Time Versioning Information */
 
-#define LIBNL_STRING "libnl 3.4.0"
-#define LIBNL_VERSION "3.4.0"
+#define LIBNL_STRING "libnl 3.7.0"
+#define LIBNL_VERSION "3.7.0"
 
 #define LIBNL_VER_MAJ		3
-#define LIBNL_VER_MIN		4
+#define LIBNL_VER_MIN		7
 #define LIBNL_VER_MIC		0
 #define LIBNL_VER(maj,min)	((maj) << 8 | (min))
 #define LIBNL_VER_NUM		LIBNL_VER(LIBNL_VER_MAJ, LIBNL_VER_MIN)

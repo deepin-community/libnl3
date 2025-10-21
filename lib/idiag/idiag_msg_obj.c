@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/idiag/idiagnl_msg_obj.c Inet Diag Message Object
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2013 Sassano Systems LLC <joe@sassanosystems.com>
  */
 
@@ -89,7 +83,17 @@ static int idiagnl_request_update(struct nl_cache *cache, struct nl_sock *sk)
 	int family = cache->c_iarg1;
 	int states = cache->c_iarg2;
 
-	return idiagnl_send_simple(sk, 0, family, states, _INET_DIAG_ALL);
+	/* idiagnl_send_simple()'s "ext" argument is u16, which is too small for _INET_DIAG_ALL,
+	 * which is more than 16 bits on recent kernels.
+	 *
+	 * Actually, internally idiagnl_send_simple() sets "struct inet_diag_req"'s "idiag_ext"
+	 * field, which is only 8 bits. So, it's even worse.
+	 *
+	 * FIXME: this probably should be fixed (by adding idiagnl_send_simple2() function), but for
+	 *    the moment it means we cannot request more than 0xFF.
+	 */
+
+	return idiagnl_send_simple(sk, 0, family, states, (uint16_t) _INET_DIAG_ALL);
 }
 
 static struct nl_cache_ops idiagnl_msg_ops = {
@@ -458,7 +462,7 @@ static void idiag_msg_dump_details(struct nl_object *a, struct nl_dump_params *p
 
 	nl_dump(p, "tos: 0x%x\n", msg->idiag_tos);
 	nl_dump(p, "traffic class: %d\n", msg->idiag_tclass);
-	nl_dump(p, "congestion algorithm: %s\n", msg->idiag_cong ? : "");
+	nl_dump(p, "congestion algorithm: %s\n", msg->idiag_cong ? msg->idiag_cong : "");
 }
 
 static void idiag_msg_dump_stats(struct nl_object *obj, struct nl_dump_params *p)
@@ -618,9 +622,9 @@ static int idiagnl_msg_clone(struct nl_object *_dst, struct nl_object *_src)
 	struct idiagnl_msg *dst = (struct idiagnl_msg *) _dst;
 	struct idiagnl_msg *src = (struct idiagnl_msg *) _src;
 
-	dst->idiag_cong = NULL;
 	dst->idiag_src = NULL;
 	dst->idiag_dst = NULL;
+	dst->idiag_cong = NULL;
 	dst->idiag_meminfo = NULL;
 	dst->idiag_vegasinfo = NULL;
 	dst->ce_mask &= ~(IDIAGNL_ATTR_CONG |

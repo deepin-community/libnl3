@@ -1,4 +1,5 @@
 libnl-xfrm-3.so.200 libnl-xfrm-3-200 #MINVER#
+* Build-Depends-Packages: libnl-xfrm-3-dev, libnl3-dev
  xfrmnl_ae_alloc@Base 3.2.26
  xfrmnl_ae_build_get_request@Base 3.2.26
  xfrmnl_ae_flags2str@Base 3.2.26
@@ -93,6 +94,7 @@ libnl-xfrm-3.so.200 libnl-xfrm-3-200 #MINVER#
  xfrmnl_sa_get_spi@Base 3.2.26
  xfrmnl_sa_get_stats@Base 3.2.26
  xfrmnl_sa_get_tfcpad@Base 3.2.26
+ xfrmnl_sa_get_user_offload@Base 3.7.0
  xfrmnl_sa_is_expiry_reached@Base 3.2.26
  xfrmnl_sa_is_hardexpiry_reached@Base 3.2.26
  xfrmnl_sa_mode2str@Base 3.2.26
@@ -122,6 +124,7 @@ libnl-xfrm-3.so.200 libnl-xfrm-3-200 #MINVER#
  xfrmnl_sa_set_sel@Base 3.2.26
  xfrmnl_sa_set_spi@Base 3.2.26
  xfrmnl_sa_set_tfcpad@Base 3.2.26
+ xfrmnl_sa_set_user_offload@Base 3.7.0
  xfrmnl_sa_str2flag@Base 3.2.26
  xfrmnl_sa_str2mode@Base 3.2.26
  xfrmnl_sa_update@Base 3.2.26

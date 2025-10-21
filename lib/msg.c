@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/msg.c		Netlink Messages Interface
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -212,7 +206,7 @@ struct nlmsghdr *nlmsg_next(struct nlmsghdr *nlh, int *remaining)
  * See nla_parse()
  */
 int nlmsg_parse(struct nlmsghdr *nlh, int hdrlen, struct nlattr *tb[],
-		int maxtype, struct nla_policy *policy)
+		int maxtype, const struct nla_policy *policy)
 {
 	if (!nlmsg_valid_hdr(nlh, hdrlen))
 		return -NLE_MSG_TOOSHORT;
@@ -243,7 +237,7 @@ struct nlattr *nlmsg_find_attr(struct nlmsghdr *nlh, int hdrlen, int attrtype)
  * @arg policy		validation policy
  */
 int nlmsg_validate(struct nlmsghdr *nlh, int hdrlen, int maxtype,
-		   struct nla_policy *policy)
+		   const struct nla_policy *policy)
 {
 	if (!nlmsg_valid_hdr(nlh, hdrlen))
 		return -NLE_MSG_TOOSHORT;
@@ -350,6 +344,8 @@ struct nl_msg *nlmsg_alloc_simple(int nlmsgtype, int flags)
 	struct nlmsghdr nlh = {
 		.nlmsg_type = nlmsgtype,
 		.nlmsg_flags = flags,
+		.nlmsg_seq = NL_AUTO_SEQ,
+		.nlmsg_pid = NL_AUTO_PID,
 	};
 
 	msg = nlmsg_inherit(&nlh);
@@ -407,7 +403,7 @@ struct nl_msg *nlmsg_convert(struct nlmsghdr *hdr)
  */
 void *nlmsg_reserve(struct nl_msg *n, size_t len, int pad)
 {
-	void *buf = n->nm_nlh;
+	char *buf = (char *) n->nm_nlh;
 	size_t nlmsg_len = n->nm_nlh->nlmsg_len;
 	size_t tlen;
 
@@ -835,7 +831,7 @@ static void print_genl_hdr(FILE *ofd, void *start)
 static void *print_genl_msg(struct nl_msg *msg, FILE *ofd, struct nlmsghdr *hdr,
 			    struct nl_cache_ops *ops, int *payloadlen)
 {
-	void *data = nlmsg_data(hdr);
+	char *data = nlmsg_data(hdr);
 
 	if (*payloadlen < GENL_HDRLEN)
 		return data;
@@ -898,7 +894,7 @@ static void dump_attrs(FILE *ofd, struct nlattr *attrs, int attrlen,
 			prefix_line(ofd, prefix);
 			fprintf(ofd, "  [PADDING] %d octets\n",
 				padlen);
-			dump_hex(ofd, nla_data(nla) + alen,
+			dump_hex(ofd, (char *) nla_data(nla) + alen,
 				 padlen, prefix);
 		}
 	}

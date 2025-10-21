@@ -1,12 +1,25 @@
 basic.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 bfifo.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 blackhole.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 cgroup.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 fq_codel.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 hfsc.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 htb.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 ingress.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
+pfifo.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
+plug.so libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
 libnl-cli-3.so.200 libnl-cli-3-200 #MINVER#
+* Build-Depends-Packages: libnl-cli-3-dev, libnl3-dev
  nl_cli_addr_alloc@Base 3.2.7
  nl_cli_addr_parse@Base 3.2.7
  nl_cli_addr_parse_broadcast@Base 3.2.7
@@ -115,5 +128,3 @@ libnl-cli-3.so.200 libnl-cli-3-200 #MINVER#
  nl_cli_tc_parse_parent@Base 3.2.7
  nl_cli_tc_register@Base 3.2.7
  nl_cli_tc_unregister@Base 3.2.7
-pfifo.so libnl-cli-3-200 #MINVER#
-plug.so libnl-cli-3-200 #MINVER#

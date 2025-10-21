@@ -1,8 +1,80 @@
-libnl3 (3.4.0-deepin1) unstable; urgency=medium
+libnl3 (3.7.0-2) unstable; urgency=medium
 
-  * Rebuild
+  * Refresh upstream signing key
+  * d/watch: fix download URL
+  * Delete outdated debian/README.Debian
+  * Delete outdated debian/README.source
+  * d/rules: drop obsolete topgit, CFLAGS stuff
+  * d/rules: stop explicitly setting --libdir
+  * d/*.install: drop unnecessary debian/tmp prefixes
+  * d/*.install: consistently use ${DEB_HOST_MULTIARCH}
+  * d/*udeb.install: consistently target usr/lib/${DEB_HOST_MULTIARCH}
+  * d/*.install: remove duplicate destination path
+  * d/*.symbols: add Build-Depends-Packages for all packages
+  * Build-Conflicts: check, as build-time unittests require root
+  * Set Standards-Version to 4.7.2
 
- -- Deepin Packages Builder <packages@deepin.org>  Fri, 11 Nov 2022 17:59:45 +0800
+ -- Chris Hofstaedtler <zeha@debian.org>  Sat, 15 Mar 2025 14:51:47 +0100
+
+libnl3 (3.7.0-1) unstable; urgency=medium
+
+  * Add myself to Uploaders.
+
+  [ Andreas Tille ]
+  * Declare Vcs fields to Debian/ team where packaging was found on Alioth
+  * Point Homepage to Github
+  * Fix watch file
+  * Drop explicit debug package libnl-3-200-dbg
+  * debhelper-compat = 13
+  * Switch from cdbs to dh
+  * Build-Depends: s/pkg-config/pkgconf/
+
+  [ Aurelien Jarno ]
+  * libnl-genl-3-200-udeb: Do not install library in the multiarch path in udeb
+    Closes: #953879
+
+  [ наб ]
+  * d/rules: guard topgit include (poisoned dh incocations)
+  * Drop unused dh-exec
+  * d/control: XC-Package-Type: drop XC- per debhelper(7)
+  * d/rules: drop duplicate dh_gencontrol
+  * d/rules: drop non-operational left-over cdbs cruft
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Mon, 10 Mar 2025 12:28:51 +0100
+
+libnl3 (3.7.0-0.3) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Install libraries into /usr (DEP17 M2).
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Wed, 10 Jan 2024 00:50:22 +0100
+
+libnl3 (3.7.0-0.2) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Dodge debhelper's #1015263 by resetting misc:Depends via
+    DEB_DH_GENCONTROL_ARGS_libnl{,-genl}-3-200-udeb to avoid pulling
+    sgml-base (Closes: #1016996).
+
+ -- Cyril Brulebois <kibi@debian.org>  Wed, 10 Aug 2022 23:43:51 +0000
+
+libnl3 (3.7.0-0.1) unstable; urgency=low
+
+  * Non-maintainer upload (Closes: #1016485)
+  * Again for this NMU, modifications have been limited to:
+    - Symbols have been updated
+    - Patches have been refreshed
+
+ -- Matthieu Baerts <matthieu.baerts@tessares.net>  Mon, 01 Aug 2022 17:53:32 +0200
+
+libnl3 (3.5.0-0.1) unstable; urgency=low
+
+  * Non-maintainer upload (Closes: #983310):
+  * For this NMU, modifications have been limited to:
+    - Symbols have been updated
+    - Patches have been refreshed
+
+ -- Matthieu Baerts <matthieu.baerts@tessares.net>  Mon, 07 Feb 2022 16:07:26 +0100
 
 libnl3 (3.4.0-1) unstable; urgency=low
 
@@ -136,7 +208,7 @@ libnl3 (3.0-2) unstable; urgency=low
 libnl3 (3.0-1.1) unstable; urgency=low
 
   * Non-maintainer upload with agreement from Heiko Stuebner
-  * Add libnl3-udeb package with seperate build for 
+  * Add libnl3-udeb package with seperate build for
     debian-installer (Closes: #635962).
 
  -- Gaudenz Steinlin <gaudenz@debian.org>  Fri, 29 Jul 2011 23:25:48 +0200
@@ -190,7 +262,7 @@ libnl (1.1-5) unstable; urgency=low
 
 libnl (1.1-4) unstable; urgency=low
 
-  * debian/control 
+  * debian/control
     - Add ${misc:Depends} to all binary packages.
     - Bump Build-Depends on debhelper to (>= 7).
   * debian/compat
@@ -272,7 +344,7 @@ libnl (1.0~pre6-5) unstable; urgency=low
     - Add XS-Vcs-* fields.
     - Replace Build-Depends: tetex-bin with texlive-latex-base. teTeX is now
       gone, superseded by texlive.
-    - Add Build-Depends: graphviz, gs-gpl | gs-esp. 
+    - Add Build-Depends: graphviz, gs-gpl | gs-esp.
       The "dot" program is needed for generating the diagram image and "gs"
       for the ps to png conversion.
 
@@ -281,7 +353,7 @@ libnl (1.0~pre6-5) unstable; urgency=low
 libnl (1.0~pre6-4) unstable; urgency=medium
 
   * Autobuilders do not distinguish between build-arch and build-indep, they
-    simply run build. So we have to move doxygen and tetex-bin from 
+    simply run build. So we have to move doxygen and tetex-bin from
     Build-Depends-Indep to Build-Depends. Closes: #408719
   * Urgency medium, as it fixes a FTBFS bug.
 
@@ -303,7 +375,7 @@ libnl (1.0~pre6-3) unstable; urgency=low
 
 libnl (1.0~pre6-2) unstable; urgency=low
 
-  * Update maintainer email address to biebl@debian.org. 
+  * Update maintainer email address to biebl@debian.org.
 
  -- Michael Biebl <biebl@debian.org>  Thu, 19 Oct 2006 20:16:09 +0200
 
@@ -311,7 +383,7 @@ libnl (1.0~pre6-1) unstable; urgency=low
 
   * New upstream release.
   * Removed 20-autoconf-dirs.patch, merged upstream.
-  * Updated debian/copyright, libnl is now licensed under the LGPL 2.1. 
+  * Updated debian/copyright, libnl is now licensed under the LGPL 2.1.
   * Updated debian/watch.
 
  -- Michael Biebl <biebl@teco.edu>  Fri, 18 Aug 2006 00:40:34 +0200
@@ -329,7 +401,7 @@ libnl (1.0~pre6~svn30-1) unstable; urgency=low
 
 libnl (0.99+1.0.svn21-4) unstable; urgency=low
 
-  * Do not create bogus /usr/lib/pkg-config directory. Closes: #364601 
+  * Do not create bogus /usr/lib/pkg-config directory. Closes: #364601
 
  -- Michael Biebl <biebl@teco.edu>  Mon, 24 Apr 2006 15:40:23 +0200
 

@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/link/vlan.c	VLAN Link Info
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -264,19 +258,28 @@ static int vlan_clone(struct rtnl_link *dst, struct rtnl_link *src)
 {
 	struct vlan_info *vdst, *vsrc = src->l_info;
 	int err;
+	struct vlan_map *p = NULL;
 
 	dst->l_info = NULL;
 	if ((err = rtnl_link_set_type(dst, "vlan")) < 0)
 		return err;
 	vdst = dst->l_info;
 
-	vdst->vi_egress_qos = calloc(vsrc->vi_egress_size,
-				     sizeof(struct vlan_map));
-	if (!vdst->vi_egress_qos)
-		return -NLE_NOMEM;
+	if (vsrc->vi_negress) {
+		p = calloc(vsrc->vi_negress,
+		           sizeof(struct vlan_map));
+		if (!p)
+			return -NLE_NOMEM;
+	}
 
-	memcpy(vdst->vi_egress_qos, vsrc->vi_egress_qos,
-	       vsrc->vi_egress_size * sizeof(struct vlan_map));
+	*vdst = *vsrc;
+
+	if (vsrc->vi_negress) {
+		vdst->vi_egress_size = vsrc->vi_negress;
+		vdst->vi_egress_qos = p;
+		memcpy(vdst->vi_egress_qos, vsrc->vi_egress_qos,
+		       vsrc->vi_negress * sizeof(struct vlan_map));
+	}
 
 	return 0;
 }
@@ -383,12 +386,11 @@ static struct rtnl_link_info_ops vlan_info_ops = {
 struct rtnl_link *rtnl_link_vlan_alloc(void)
 {
 	struct rtnl_link *link;
-	int err;
 
 	if (!(link = rtnl_link_alloc()))
 		return NULL;
 
-	if ((err = rtnl_link_set_type(link, "vlan")) < 0) {
+	if (rtnl_link_set_type(link, "vlan") < 0) {
 		rtnl_link_put(link);
 		return NULL;
 	}
@@ -586,10 +588,16 @@ int rtnl_link_vlan_set_egress_map(struct rtnl_link *link, uint32_t from, int to)
 		return -NLE_INVAL;
 
 	if (vi->vi_negress >= vi->vi_egress_size) {
-		int new_size = vi->vi_egress_size + 32;
+		uint32_t new_size = vi->vi_egress_size + 1 + vi->vi_egress_size / 2;
+		size_t bytes;
 		void *ptr;
 
-		ptr = realloc(vi->vi_egress_qos, new_size);
+		if (new_size < vi->vi_egress_size)
+			return -NLE_NOMEM;
+		bytes = (size_t) new_size * sizeof(struct vlan_map);
+		if (bytes / sizeof (struct vlan_map) != new_size)
+			return -NLE_NOMEM;
+		ptr = realloc(vi->vi_egress_qos, bytes);
 		if (!ptr)
 			return -NLE_NOMEM;
 
@@ -632,6 +640,7 @@ static const struct trans_tbl vlan_flags[] = {
 	__ADD(VLAN_FLAG_GVRP, gvrp),
 	__ADD(VLAN_FLAG_LOOSE_BINDING, loose_binding),
 	__ADD(VLAN_FLAG_MVRP, mvrp),
+	__ADD(VLAN_FLAG_BRIDGE_BINDING, bridge_binding),
 };
 
 /**

@@ -16,11 +16,9 @@ Signed-off-by: Heiko Stuebner <heiko@sntech.de>
  Makefile.am | 21 +++++++--------------
  1 file changed, 7 insertions(+), 14 deletions(-)
 
-diff --git a/Makefile.am b/Makefile.am
-index 7747d16..d39fcde 100644
 --- a/Makefile.am
 +++ b/Makefile.am
-@@ -336,8 +336,7 @@ EXTRA_lib_libnl_3_la_DEPENDENCIES = \
+@@ -370,8 +370,7 @@
  lib_libnl_3_la_CPPFLAGS = \
  	$(lib_cppflags)
  lib_libnl_3_la_LDFLAGS = \
@@ -30,7 +28,7 @@ index 7747d16..d39fcde 100644
  
  lib_LTLIBRARIES += lib/libnl-route-3.la
  
-@@ -422,8 +421,7 @@ EXTRA_lib_libnl_route_3_la_DEPENDENCIES = \
+@@ -467,8 +466,7 @@
  lib_libnl_route_3_la_CPPFLAGS = \
  	$(lib_cppflags)
  lib_libnl_route_3_la_LDFLAGS = \
@@ -40,7 +38,7 @@ index 7747d16..d39fcde 100644
  lib_libnl_route_3_la_LIBADD = \
  	lib/libnl-3.la
  
-@@ -442,8 +440,7 @@ EXTRA_lib_libnl_idiag_3_la_DEPENDENCIES = \
+@@ -488,8 +486,7 @@
  lib_libnl_idiag_3_la_CPPFLAGS = \
  	$(lib_cppflags)
  lib_libnl_idiag_3_la_LDFLAGS = \
@@ -50,7 +48,7 @@ index 7747d16..d39fcde 100644
  lib_libnl_idiag_3_la_LIBADD = \
  	lib/libnl-3.la
  
-@@ -459,8 +456,7 @@ EXTRA_lib_libnl_genl_3_la_DEPENDENCIES = \
+@@ -506,8 +503,7 @@
  lib_libnl_genl_3_la_CPPFLAGS = \
  	$(lib_cppflags)
  lib_libnl_genl_3_la_LDFLAGS = \
@@ -60,7 +58,7 @@ index 7747d16..d39fcde 100644
  lib_libnl_genl_3_la_LIBADD = \
  	lib/libnl-3.la
  
-@@ -486,8 +482,7 @@ lib_libnl_nf_3_la_CPPFLAGS = \
+@@ -534,8 +530,7 @@
  EXTRA_lib_libnl_nf_3_la_DEPENDENCIES = \
  	libnl-nf-3.sym
  lib_libnl_nf_3_la_LDFLAGS = \
@@ -70,7 +68,7 @@ index 7747d16..d39fcde 100644
  lib_libnl_nf_3_la_LIBADD  = \
  	lib/libnl-3.la \
  	lib/libnl-route-3.la
-@@ -504,8 +499,7 @@ lib_libnl_xfrm_3_la_SOURCES = \
+@@ -553,8 +548,7 @@
  lib_libnl_xfrm_3_la_CPPFLAGS = \
  	$(lib_cppflags)
  lib_libnl_xfrm_3_la_LDFLAGS = \
@@ -80,7 +78,7 @@ index 7747d16..d39fcde 100644
  EXTRA_lib_libnl_xfrm_3_la_DEPENDENCIES = \
  	libnl-xfrm-3.sym
  lib_libnl_xfrm_3_la_LIBADD = \
-@@ -594,8 +588,7 @@ src_lib_libnl_cli_3_la_CPPFLAGS = \
+@@ -646,8 +640,7 @@
  	-I$(srcdir)/include \
  	-I$(builddir)/include
  src_lib_libnl_cli_3_la_LDFLAGS = \
@@ -90,5 +88,3 @@ index 7747d16..d39fcde 100644
  src_lib_libnl_cli_3_la_LIBADD = \
  	lib/libnl-3.la \
  	lib/libnl-route-3.la \
--- 
-tg: (38d147c..) debian/no-symvers (depends on: upstream-dist)

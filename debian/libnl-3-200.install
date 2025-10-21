@@ -1,3 +1,2 @@
-#!/usr/bin/dh-exec
-debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/libnl-3*.so.* lib/${DEB_HOST_MULTIARCH}/
-debian/tmp/etc/libnl-3/* etc/libnl-3
+usr/lib/${DEB_HOST_MULTIARCH}/libnl-3*.so.*
+etc/libnl-3/* etc/libnl-3

@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/tc.c		Traffic Control
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2011 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -24,6 +18,8 @@
 #include <netlink/route/tc.h>
 #include <netlink-private/route/tc-api.h>
 
+#include "netlink-private/utils.h"
+
 /** @cond SKIP */
 
 static struct nl_list_head tc_ops_list[__RTNL_TC_TYPE_MAX];
@@ -32,12 +28,13 @@ static struct rtnl_tc_type_ops *tc_type_ops[__RTNL_TC_TYPE_MAX];
 static struct nla_policy tc_policy[TCA_MAX+1] = {
 	[TCA_KIND]	= { .type = NLA_STRING,
 			    .maxlen = TCKINDSIZ },
+	[TCA_CHAIN]	= { .type = NLA_U32 },
 	[TCA_STATS]	= { .minlen = sizeof(struct tc_stats) },
 	[TCA_STATS2]	= { .type = NLA_NESTED },
 };
 
 int tca_parse(struct nlattr **tb, int maxattr, struct rtnl_tc *g,
-	      struct nla_policy *policy)
+	      const struct nla_policy *policy)
 {
 	
 	if (g->ce_mask & TCA_ATTR_OPTS)
@@ -78,6 +75,9 @@ int rtnl_tc_msg_parse(struct nlmsghdr *n, struct rtnl_tc *tc)
 
 	nla_strlcpy(kind, tb[TCA_KIND], sizeof(kind));
 	rtnl_tc_set_kind(tc, kind);
+
+	if (tb[TCA_CHAIN])
+	        rtnl_tc_set_chain(tc, nla_get_u32(tb[TCA_CHAIN]));
 
 	tm = nlmsg_data(n);
 	tc->tc_family  = tm->tcm_family;
@@ -202,17 +202,22 @@ int rtnl_tc_msg_build(struct rtnl_tc *tc, int type, int flags,
 		.tcm_handle = tc->tc_handle,
 		.tcm_parent = tc->tc_parent,
 	};
-	int err = -NLE_MSGSIZE;
+	int err;
 
 	msg = nlmsg_alloc_simple(type, flags);
 	if (!msg)
 		return -NLE_NOMEM;
 
-	if (nlmsg_append(msg, &tchdr, sizeof(tchdr), NLMSG_ALIGNTO) < 0)
-		goto nla_put_failure;
+	if (nlmsg_append(msg, &tchdr, sizeof(tchdr), NLMSG_ALIGNTO) < 0) {
+		err = -NLE_MSGSIZE;
+		goto out_err;
+	}
 
 	if (tc->ce_mask & TCA_ATTR_KIND)
-	    NLA_PUT_STRING(msg, TCA_KIND, tc->tc_kind);
+		NLA_PUT_STRING(msg, TCA_KIND, tc->tc_kind);
+
+	if (tc->ce_mask & TCA_ATTR_CHAIN)
+	        NLA_PUT_U32(msg, TCA_CHAIN, tc->tc_chain);
 
 	ops = rtnl_tc_get_ops(tc);
 	if (ops && (ops->to_msg_fill || ops->to_msg_fill_raw)) {
@@ -220,21 +225,28 @@ int rtnl_tc_msg_build(struct rtnl_tc *tc, int type, int flags,
 		void *data = rtnl_tc_data(tc);
 
 		if (ops->to_msg_fill) {
-			if (!(opts = nla_nest_start(msg, TCA_OPTIONS)))
-				goto nla_put_failure;
+			if (!(opts = nla_nest_start(msg, TCA_OPTIONS))) {
+				err = -NLE_NOMEM;
+				goto out_err;
+			}
 
 			if ((err = ops->to_msg_fill(tc, data, msg)) < 0)
-				goto nla_put_failure;
+				goto out_err;
 
-			nla_nest_end(msg, opts);
+			if (strcmp("cgroup", tc->tc_kind))
+				nla_nest_end(msg, opts);
+			else
+				nla_nest_end_keep_empty(msg, opts);
 		} else if ((err = ops->to_msg_fill_raw(tc, data, msg)) < 0)
-			goto nla_put_failure;
+			goto out_err;
 	}
 
 	*result = msg;
 	return 0;
 
 nla_put_failure:
+	err = -NLE_NOMEM;
+out_err:
 	nlmsg_free(msg);
 	return err;
 }
@@ -513,7 +525,12 @@ int rtnl_tc_set_kind(struct rtnl_tc *tc, const char *kind)
 	if (tc->ce_mask & TCA_ATTR_KIND)
 		return -NLE_EXIST;
 
-	strncpy(tc->tc_kind, kind, sizeof(tc->tc_kind) - 1);
+	if (   !kind
+	    || strlen (kind) >= sizeof (tc->tc_kind))
+		return -NLE_INVAL;
+
+	_nl_strncpy_assert(tc->tc_kind, kind, sizeof(tc->tc_kind));
+
 	tc->ce_mask |= TCA_ATTR_KIND;
 
 	/* Force allocation of data */
@@ -549,6 +566,34 @@ uint64_t rtnl_tc_get_stat(struct rtnl_tc *tc, enum rtnl_tc_stat id)
 		return 0;
 
 	return tc->tc_stats[id];
+}
+
+/**
+ * Set the chain index of a traffic control object
+ * @arg tc		traffic control object
+ * @arg chain		chain index of traffic control object
+ *
+ */
+void rtnl_tc_set_chain(struct rtnl_tc *tc, uint32_t chain)
+{
+	tc->tc_chain = chain;
+	tc->ce_mask |= TCA_ATTR_CHAIN;
+}
+
+/**
+ * Return chain index of traffic control object
+ * @arg tc		traffic control object
+ * @arg out_value       output argument.
+ *
+ * @return 0 of the output value was successfully returned, or a negative
+ *   error code on failure.
+ */
+int rtnl_tc_get_chain(struct rtnl_tc *tc, uint32_t *out_value)
+{
+	if (!(tc->ce_mask & TCA_ATTR_CHAIN))
+		return -NLE_MISSING_ATTR;
+	*out_value = tc->tc_chain;
+	return 0;
 }
 
 /** @} */
@@ -596,11 +641,7 @@ int rtnl_tc_str2stat(const char *name)
  */
 int rtnl_tc_calc_txtime(int bufsize, int rate)
 {
-	double tx_time_secs;
-	
-	tx_time_secs = (double) bufsize / (double) rate;
-
-	return tx_time_secs * 1000000.;
+	return ((double) bufsize / (double) rate) * 1000000.0;
 }
 
 /**
@@ -619,11 +660,7 @@ int rtnl_tc_calc_txtime(int bufsize, int rate)
  */
 int rtnl_tc_calc_bufsize(int txtime, int rate)
 {
-	double bufsize;
-
-	bufsize = (double) txtime * (double) rate;
-
-	return bufsize / 1000000.;
+	return ((double) txtime * (double) rate) / 1000000.0;
 }
 
 /**
@@ -732,7 +769,7 @@ int rtnl_tc_build_rate_table(struct rtnl_tc *tc, struct rtnl_ratespec *spec,
 
 	for (i = 0; i < RTNL_TC_RTABLE_SIZE; i++) {
 		size = adjust_size((i + 1) << cell_log, spec->rs_mpu, linktype);
-		dst[i] = nl_us2ticks(rtnl_tc_calc_txtime(size, spec->rs_rate));
+		dst[i] = nl_us2ticks(rtnl_tc_calc_txtime64(size, spec->rs_rate64));
 	}
 
 	spec->rs_cell_align = -1;
@@ -771,14 +808,17 @@ int rtnl_tc_clone(struct nl_object *dstobj, struct nl_object *srcobj)
 	struct rtnl_tc *src = TC_CAST(srcobj);
 	struct rtnl_tc_ops *ops;
 
+	dst->tc_opts = NULL;
+	dst->tc_xstats = NULL;
+	dst->tc_subdata = NULL;
+	dst->tc_link = NULL;
+	dst->tc_ops = NULL;
+
 	if (src->tc_link) {
 		nl_object_get(OBJ_CAST(src->tc_link));
 		dst->tc_link = src->tc_link;
 	}
 
-	dst->tc_opts = NULL;
-	dst->tc_xstats = NULL;
-	dst->tc_subdata = NULL;
 	dst->ce_mask &= ~(TCA_ATTR_OPTS |
 	                  TCA_ATTR_XSTATS);
 
@@ -800,18 +840,19 @@ int rtnl_tc_clone(struct nl_object *dstobj, struct nl_object *srcobj)
 		if (!(dst->tc_subdata = nl_data_clone(src->tc_subdata))) {
 			return -NLE_NOMEM;
 		}
-	}
 
-	ops = rtnl_tc_get_ops(src);
-	if (ops && ops->to_clone) {
-		void *a = rtnl_tc_data(dst), *b = rtnl_tc_data(src);
+		/* Warning: if the data contains pointer, then at this point, dst->tc_subdata
+		 * will alias those pointers.
+		 *
+		 * ops->to_clone() MUST fix that.
+		 *
+		 * If the type is actually "struct rtnl_act", then to_clone() must also
+		 * fix dangling "a_next" pointer. */
 
-		if (!a)
-			return 0;
-		else if (!b)
-			return -NLE_NOMEM;
-
-		return ops->to_clone(a, b);
+		ops = rtnl_tc_get_ops(src);
+		if (ops && ops->to_clone) {
+			return ops->to_clone(rtnl_tc_data(dst), rtnl_tc_data(src));
+		}
 	}
 
 	return 0;
@@ -908,22 +949,19 @@ void rtnl_tc_dump_stats(struct nl_object *obj, struct nl_dump_params *p)
 
 	res = nl_cancel_down_bytes(tc->tc_stats[RTNL_TC_BYTES], &unit);
 
-	nl_dump_line(p,
-	             "       %10.2f %3s   %10u   %-10u %-10u %-10u %-10u\n",
-	             res, unit,
-	             tc->tc_stats[RTNL_TC_PACKETS],
-	             tc->tc_stats[RTNL_TC_DROPS],
-	             tc->tc_stats[RTNL_TC_OVERLIMITS],
-	             tc->tc_stats[RTNL_TC_QLEN],
-	             tc->tc_stats[RTNL_TC_BACKLOG]);
+	nl_dump_line(
+		p,
+		"       %10.2f %3s   %10llu   %-10llu %-10llu %-10llu %-10llu\n",
+		res, unit, (long long unsigned)tc->tc_stats[RTNL_TC_PACKETS],
+		(long long unsigned)tc->tc_stats[RTNL_TC_DROPS],
+		(long long unsigned)tc->tc_stats[RTNL_TC_OVERLIMITS],
+		(long long unsigned)tc->tc_stats[RTNL_TC_QLEN],
+		(long long unsigned)tc->tc_stats[RTNL_TC_BACKLOG]);
 
 	res = nl_cancel_down_bytes(tc->tc_stats[RTNL_TC_RATE_BPS], &unit);
 
-	nl_dump_line(p,
-	             "       %10.2f %3s/s %10u/s\n",
-	             res,
-	             unit,
-	             tc->tc_stats[RTNL_TC_RATE_PPS]);
+	nl_dump_line(p, "       %10.2f %3s/s %10llu/s\n", res, unit,
+		     (long long unsigned)tc->tc_stats[RTNL_TC_RATE_PPS]);
 }
 
 uint64_t rtnl_tc_compare(struct nl_object *aobj, struct nl_object *bobj,

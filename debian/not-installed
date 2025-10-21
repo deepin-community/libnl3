@@ -1,0 +1,5 @@
+usr/lib/*/libnl*.la
+usr/lib/*/libnl/cli/*/*.a
+usr/lib/*/libnl/cli/*/*.la
+usr/lib/*/cls/*/libnl*.a
+usr/lib/*/cls/*/libnl*.la
