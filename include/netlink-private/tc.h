@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink-private/tc.h		Local Traffic Control Interface
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -32,10 +26,11 @@ extern "C" {
 #define TCA_ATTR_MPU		0x0800
 #define TCA_ATTR_OVERHEAD	0x1000
 #define TCA_ATTR_LINKTYPE	0x2000
-#define TCA_ATTR_MAX		TCA_ATTR_LINKTYPE
+#define TCA_ATTR_CHAIN          0x4000
+#define TCA_ATTR_MAX            TCA_ATTR_CHAIN
 
 extern int tca_parse(struct nlattr **, int, struct rtnl_tc *,
-		     struct nla_policy *);
+                     const struct nla_policy *);
 
 #define RTNL_TC_RTABLE_SIZE	256
 

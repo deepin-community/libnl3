@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink-private/netlink.h	Local Netlink Interface
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -48,7 +42,6 @@
 #include <linux/pkt_sched.h>
 #include <linux/pkt_cls.h>
 #include <linux/gen_stats.h>
-#include <linux/ip_mp_alg.h>
 #include <linux/atm.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
@@ -66,6 +59,7 @@
 #include <netlink-private/object-api.h>
 #include <netlink-private/cache-api.h>
 #include <netlink-private/types.h>
+#include <netlink-private/utils.h>
 
 #define NSEC_PER_SEC	1000000000L
 
@@ -90,7 +84,7 @@ struct trans_list {
 			fprintf(stderr,					\
 				"DBG<" #LVL ">%20s:%-4u %s: " FMT,	\
 				__FILE__, __LINE__,			\
-				__PRETTY_FUNCTION__, ##ARG);		\
+				__func__, ##ARG);			\
 			errno = _errsv;					\
 		}							\
 	} while (0)
@@ -101,7 +95,7 @@ struct trans_list {
 #define BUG()                            				\
 	do {                                 				\
 		fprintf(stderr, "BUG at file position %s:%d:%s\n",  	\
-			__FILE__, __LINE__, __PRETTY_FUNCTION__); 	\
+			__FILE__, __LINE__, __func__); 			\
 		assert(0);						\
 	} while (0)
 
@@ -115,7 +109,7 @@ struct trans_list {
 #define APPBUG(msg)							\
 	do {								\
 		fprintf(stderr, "APPLICATION BUG: %s:%d:%s: %s\n",	\
-			__FILE__, __LINE__, __PRETTY_FUNCTION__, msg);	\
+			__FILE__, __LINE__, __func__, msg);		\
 		assert(0);						\
 	} while(0)
 
@@ -160,14 +154,14 @@ static inline int nl_cb_call(struct nl_cb *cb, enum nl_cb_type type, struct nl_m
 #define __deprecated __attribute__ ((deprecated))
 
 #define min(x,y) ({ \
-	typeof(x) _x = (x);	\
-	typeof(y) _y = (y);	\
+	__typeof__(x) _x = (x);	\
+	__typeof__(y) _y = (y);	\
 	(void) (&_x == &_y);		\
 	_x < _y ? _x : _y; })
 
 #define max(x,y) ({ \
-	typeof(x) _x = (x);	\
-	typeof(y) _y = (y);	\
+	__typeof__(x) _x = (x);	\
+	__typeof__(y) _y = (y);	\
 	(void) (&_x == &_y);		\
 	_x > _y ? _x : _y; })
 
@@ -187,7 +181,7 @@ static inline void rtnl_copy_ratespec(struct rtnl_ratespec *dst,
 	dst->rs_overhead = src->overhead;
 	dst->rs_cell_align = src->cell_align;
 	dst->rs_mpu = src->mpu;
-	dst->rs_rate = src->rate;
+	dst->rs_rate64 = src->rate;
 }
 
 static inline void rtnl_rcopy_ratespec(struct tc_ratespec *dst,
@@ -197,7 +191,7 @@ static inline void rtnl_rcopy_ratespec(struct tc_ratespec *dst,
 	dst->overhead = src->rs_overhead;
 	dst->cell_align = src->rs_cell_align;
 	dst->mpu = src->rs_mpu;
-	dst->rate = src->rs_rate;
+	dst->rate = src->rs_rate64 > 0xFFFFFFFFull ? 0xFFFFFFFFull : (uint32_t) src->rs_rate64;
 }
 
 static inline const char *nl_cache_name(struct nl_cache *cache)
@@ -276,5 +270,15 @@ static inline void nl_write_unlock(pthread_rwlock_t *lock)
 #define nl_write_lock(LOCK) do { } while(0)
 #define nl_write_unlock(LOCK) do { } while(0)
 #endif
+
+static inline int rtnl_tc_calc_txtime64(int bufsize, uint64_t rate)
+{
+	return ((double) bufsize / (double) rate) * 1000000.0;
+}
+
+static inline int rtnl_tc_calc_bufsize64(int txtime, uint64_t rate)
+{
+	return ((double) txtime * (double) rate) / 1000000.0;
+}
 
 #endif

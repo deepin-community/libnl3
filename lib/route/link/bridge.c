@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/link/bridge.c	AF_BRIDGE link support
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2010-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -307,6 +301,20 @@ nla_put_failure:
 	return -NLE_MSGSIZE;
 }
 
+static int bridge_override_rtm(struct rtnl_link *link) {
+        struct bridge_data *bd;
+
+        if (!rtnl_link_is_bridge(link))
+                return 0;
+
+        bd = bridge_data(link);
+
+        if (bd->ce_mask & BRIDGE_ATTR_FLAGS)
+                return 1;
+
+        return 0;
+}
+
 static int bridge_get_af(struct nl_msg *msg, uint32_t *ext_filter_mask)
 {
 	*ext_filter_mask |= RTEXT_FILTER_BRVLAN;
@@ -450,12 +458,11 @@ static int bridge_compare(struct rtnl_link *_a, struct rtnl_link *_b,
 struct rtnl_link *rtnl_link_bridge_alloc(void)
 {
 	struct rtnl_link *link;
-	int err;
 
 	if (!(link = rtnl_link_alloc()))
 		return NULL;
 
-	if ((err = rtnl_link_set_type(link, "bridge")) < 0) {
+	if (rtnl_link_set_type(link, "bridge") < 0) {
 		rtnl_link_put(link);
 		return NULL;
 	}
@@ -961,7 +968,7 @@ static struct rtnl_link_af_ops bridge_ops = {
 	.ao_fill_af			= &bridge_fill_af,
 	.ao_fill_pi			= &bridge_fill_pi,
 	.ao_fill_pi_flags	= NLA_F_NESTED,
-	.ao_override_rtm	= 1,
+	.ao_override_rtm		= &bridge_override_rtm,
 	.ao_fill_af_no_nest	= 1,
 };
 

@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/neigh.c	Neighbours
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2008 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -68,7 +62,7 @@
  * // Neighbours can then be looked up by the interface and destination
  * // address:
  * struct rtnl_neigh *neigh = rtnl_neigh_get(cache, ifindex, dst_addr);
- * 
+ *
  * // After successful usage, the object must be given back to the cache
  * rtnl_neigh_put(neigh);
  * @endcode
@@ -190,6 +184,9 @@ static int neigh_clone(struct nl_object *_dst, struct nl_object *_src)
 {
 	struct rtnl_neigh *dst = nl_object_priv(_dst);
 	struct rtnl_neigh *src = nl_object_priv(_src);
+
+	dst->n_lladdr = NULL;
+	dst->n_dst = NULL;
 
 	if (src->n_lladdr)
 		if (!(dst->n_lladdr = nl_addr_clone(src->n_lladdr)))
@@ -319,11 +316,13 @@ static uint32_t neigh_id_attrs_get(struct nl_object *obj)
 
 	if (neigh->n_family == AF_BRIDGE) {
 		if (neigh->n_flags & NTF_SELF)
-			return (NEIGH_ATTR_LLADDR | NEIGH_ATTR_FAMILY | NEIGH_ATTR_IFINDEX | NEIGH_ATTR_VLAN);
+			return (NEIGH_ATTR_LLADDR | NEIGH_ATTR_FAMILY | NEIGH_ATTR_IFINDEX |
+				       ((neigh->ce_mask & NEIGH_ATTR_DST) ? NEIGH_ATTR_DST: 0) |
+				       ((neigh->ce_mask & NEIGH_ATTR_VLAN) ? NEIGH_ATTR_VLAN : 0));
 		else
 			return (NEIGH_ATTR_LLADDR | NEIGH_ATTR_FAMILY | NEIGH_ATTR_MASTER | NEIGH_ATTR_VLAN);
 	} else
-		return (NEIGH_ATTR_IFINDEX | NEIGH_ATTR_DST | NEIGH_ATTR_FAMILY);
+		return neigh_obj_ops.oo_id_attrs;
 }
 
 static struct nla_policy neigh_policy[NDA_MAX+1] = {
@@ -389,11 +388,13 @@ int rtnl_neigh_parse(struct nlmsghdr *n, struct rtnl_neigh **result)
 	}
 
 	if (tb[NDA_DST]) {
-		neigh->n_dst = nl_addr_alloc_attr(tb[NDA_DST], neigh->n_family);
+		neigh->n_dst = nl_addr_alloc_attr(tb[NDA_DST], AF_UNSPEC);
 		if (!neigh->n_dst) {
 			err = -NLE_NOMEM;
 			goto errout;
 		}
+		nl_addr_set_family(neigh->n_dst,
+				   nl_addr_guess_family(neigh->n_dst));
 		neigh->ce_mask |= NEIGH_ATTR_DST;
 	}
 
@@ -404,7 +405,7 @@ int rtnl_neigh_parse(struct nlmsghdr *n, struct rtnl_neigh **result)
 		neigh->n_cacheinfo.nci_used = ci->ndm_used;
 		neigh->n_cacheinfo.nci_updated = ci->ndm_updated;
 		neigh->n_cacheinfo.nci_refcnt = ci->ndm_refcnt;
-		
+
 		neigh->ce_mask |= NEIGH_ATTR_CACHEINFO;
 	}
 
@@ -452,7 +453,31 @@ static int neigh_request_update(struct nl_cache *c, struct nl_sock *h)
 {
 	int family = c->c_iarg1;
 
-	return nl_rtgen_request(h, RTM_GETNEIGH, family, NLM_F_DUMP);
+	if (family == AF_UNSPEC) {
+		return nl_rtgen_request(h, RTM_GETNEIGH, family, NLM_F_DUMP);
+	} else if (family == AF_BRIDGE) {
+		struct ifinfomsg hdr = {.ifi_family = family};
+		struct nl_msg *msg;
+		int err;
+
+		msg = nlmsg_alloc_simple(RTM_GETNEIGH, NLM_F_REQUEST | NLM_F_DUMP);
+		if (!msg)
+			return -NLE_NOMEM;
+
+		err = -NLE_MSGSIZE;
+		if (nlmsg_append(msg, &hdr, sizeof(hdr), NLMSG_ALIGNTO) < 0)
+			goto nla_put_failure;
+
+		err = nl_send_auto(h, msg);
+		if (err > 0)
+			err = 0;
+
+	nla_put_failure:
+		nlmsg_free(msg);
+		return err;
+	}
+
+	return -NLE_INVAL;
 }
 
 
@@ -462,10 +487,14 @@ static void neigh_dump_line(struct nl_object *a, struct nl_dump_params *p)
 	struct rtnl_neigh *n = (struct rtnl_neigh *) a;
 	struct nl_cache *link_cache;
 	char state[128], flags[64];
+	char buf[128];
 
 	link_cache = nl_cache_mngt_require_safe("route/link");
 
-	if (n->n_family != AF_BRIDGE)
+	if (n->n_family != AF_UNSPEC)
+		nl_dump_line(p, "%s ", nl_af2str(n->n_family, buf, sizeof(buf)));
+
+	if (n->ce_mask & NEIGH_ATTR_DST)
 		nl_dump_line(p, "%s ", nl_addr2str(n->n_dst, dst, sizeof(dst)));
 
 	if (link_cache)
@@ -481,6 +510,14 @@ static void neigh_dump_line(struct nl_object *a, struct nl_dump_params *p)
 
 	if (n->ce_mask & NEIGH_ATTR_VLAN)
 		nl_dump(p, "vlan %d ", n->n_vlan);
+
+	if (n->ce_mask & NEIGH_ATTR_MASTER) {
+		if (link_cache)
+			nl_dump(p, "%s ", rtnl_link_i2name(link_cache, n->n_master,
+							   state, sizeof(state)));
+		else
+			nl_dump(p, "%d ", n->n_master);
+	}
 
 	rtnl_neigh_state2str(n->n_state, state, sizeof(state));
 	rtnl_neigh_flags2str(n->n_flags, flags, sizeof(flags));
@@ -602,6 +639,7 @@ struct rtnl_neigh * rtnl_neigh_get(struct nl_cache *cache, int ifindex,
 
 	nl_list_for_each_entry(neigh, &cache->c_items, ce_list) {
 		if (neigh->n_ifindex == ifindex &&
+		    neigh->n_family == dst->a_family &&
 		    !nl_addr_cmp(neigh->n_dst, dst)) {
 			nl_object_get((struct nl_object *) neigh);
 			return neigh;
@@ -674,7 +712,7 @@ static int build_neigh_msg(struct rtnl_neigh *tmpl, int cmd, int flags,
 	if (nlmsg_append(msg, &nhdr, sizeof(nhdr), NLMSG_ALIGNTO) < 0)
 		goto nla_put_failure;
 
-	if (tmpl->n_family != AF_BRIDGE)
+	if (tmpl->ce_mask & NEIGH_ATTR_DST)
 		NLA_PUT_ADDR(msg, NDA_DST, tmpl->n_dst);
 
 	if (tmpl->ce_mask & NEIGH_ATTR_LLADDR)
@@ -702,7 +740,7 @@ nla_put_failure:
  * all relevant fields and must thus be sent out via nl_send_auto_complete()
  * or supplemented as needed. \a tmpl must contain the attributes of the new
  * neighbour set via \c rtnl_neigh_set_* functions.
- * 
+ *
  * The following attributes must be set in the template:
  *  - Interface index (rtnl_neigh_set_ifindex())
  *  - State (rtnl_neigh_set_state())
@@ -739,7 +777,7 @@ int rtnl_neigh_add(struct nl_sock *sk, struct rtnl_neigh *tmpl, int flags)
 {
 	int err;
 	struct nl_msg *msg;
-	
+
 	if ((err = rtnl_neigh_build_add_request(tmpl, flags, &msg)) < 0)
 		return err;
 
@@ -795,7 +833,7 @@ int rtnl_neigh_delete(struct nl_sock *sk, struct rtnl_neigh *neigh,
 {
 	struct nl_msg *msg;
 	int err;
-	
+
 	if ((err = rtnl_neigh_build_delete_request(neigh, flags, &msg)) < 0)
 		return err;
 
@@ -853,6 +891,9 @@ static const struct trans_tbl neigh_flags[] = {
 	__ADD(NTF_PROXY, proxy),
 	__ADD(NTF_ROUTER, router),
 	__ADD(NTF_SELF, self),
+	__ADD(NTF_MASTER, master),
+	__ADD(NTF_EXT_LEARNED, ext_learned),
+	__ADD(NTF_OFFLOADED, offloaded),
 };
 
 char * rtnl_neigh_flags2str(int flags, char *buf, size_t len)
@@ -1013,6 +1054,16 @@ int rtnl_neigh_get_vlan(struct rtnl_neigh *neigh)
 		return neigh->n_vlan;
 	else
 		return -1;
+}
+
+void rtnl_neigh_set_master(struct rtnl_neigh *neigh, int ifindex)
+{
+	neigh->n_master = ifindex;
+	neigh->ce_mask |= NEIGH_ATTR_MASTER;
+}
+
+int rtnl_neigh_get_master(struct rtnl_neigh *neigh) {
+	return neigh->n_master;
 }
 
 /** @} */

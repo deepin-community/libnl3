@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * src/nl-neigh-list.c      List Neighbours
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2009 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -86,6 +80,11 @@ int main(int argc, char *argv[])
 	}
 
 	nl_cache_dump_filter(neigh_cache, &params, OBJ_CAST(neigh));
+
+	rtnl_neigh_put(neigh);
+	nl_cache_put(neigh_cache);
+	nl_cache_put(link_cache);
+	nl_socket_free(sock);
 
 	return 0;
 }

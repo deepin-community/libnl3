@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/addr.c		Network Address
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -584,8 +578,16 @@ int nl_addr_shared(const struct nl_addr *addr)
  */
 int nl_addr_cmp(const struct nl_addr *a, const struct nl_addr *b)
 {
-	int d = a->a_family - b->a_family;
+	int d;
 
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+
+	d = a->a_family - b->a_family;
 	if (d == 0) {
 		d = a->a_len - b->a_len;
 

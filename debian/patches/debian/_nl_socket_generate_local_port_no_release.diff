@@ -9,11 +9,9 @@ in favor of a more flexible variant.
 Readd a stub function to make our symbols happy
 ---
 
-diff --git a/lib/socket.c b/lib/socket.c
-index 109c416..bbf95c9 100644
 --- a/lib/socket.c
 +++ b/lib/socket.c
-@@ -355,6 +355,11 @@ uint32_t _nl_socket_set_local_port_no_release(struct nl_sock *sk, int generate_o
+@@ -351,6 +351,11 @@
  }
  /** \endcond */
  

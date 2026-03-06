@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/attr.c		Netlink Attributes
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -147,7 +141,7 @@ int nla_len(const struct nlattr *nla)
  */
 int nla_ok(const struct nlattr *nla, int remaining)
 {
-	return remaining >= sizeof(*nla) &&
+	return remaining >= (int) sizeof(*nla) &&
 	       nla->nla_len >= sizeof(*nla) &&
 	       nla->nla_len <= remaining;
 }
@@ -240,7 +234,7 @@ static int validate_nla(const struct nlattr *nla, int maxtype,
  * @return 0 on success or a negative error code.
  */
 int nla_parse(struct nlattr *tb[], int maxtype, struct nlattr *head, int len,
-	      struct nla_policy *policy)
+	      const struct nla_policy *policy)
 {
 	struct nlattr *nla;
 	int rem, err;
@@ -256,7 +250,7 @@ int nla_parse(struct nlattr *tb[], int maxtype, struct nlattr *head, int len,
 		if (policy) {
 			err = validate_nla(nla, maxtype, policy);
 			if (err < 0)
-				goto errout;
+				return err;
 		}
 
 		if (tb[type])
@@ -266,13 +260,12 @@ int nla_parse(struct nlattr *tb[], int maxtype, struct nlattr *head, int len,
 		tb[type] = nla;
 	}
 
-	if (rem > 0)
+	if (rem > 0) {
 		NL_DBG(1, "netlink: %d bytes leftover after parsing "
 		       "attributes.\n", rem);
+	}
 
-	err = 0;
-errout:
-	return err;
+	return 0;
 }
 
 /**
@@ -477,7 +470,7 @@ struct nlattr *nla_reserve(struct nl_msg *msg, int attrtype, int attrlen)
 	NL_DBG(2, "msg %p: attr <%p> %d: Reserved %d (%d) bytes at offset +%td "
 		  "nlmsg_len=%d\n", msg, nla, nla->nla_type,
 		  nla_total_size(attrlen), attrlen,
-		  (void *) nla - nlmsg_data(msg->nm_nlh),
+		  (char *) nla - (char *) nlmsg_data(msg->nm_nlh),
 		  msg->nm_nlh->nlmsg_len);
 
 	return nla;
@@ -513,7 +506,7 @@ int nla_put(struct nl_msg *msg, int attrtype, int datalen, const void *data)
 		memcpy(nla_data(nla), data, datalen);
 		NL_DBG(2, "msg %p: attr <%p> %d: Wrote %d bytes at offset +%td\n",
 		       msg, nla, nla->nla_type, datalen,
-		       (void *) nla - nlmsg_data(msg->nm_nlh));
+		       (char *) nla - (char *) nlmsg_data(msg->nm_nlh));
 	}
 
 	return 0;
@@ -903,7 +896,7 @@ struct nlattr *nla_nest_start(struct nl_msg *msg, int attrtype)
 {
 	struct nlattr *start = (struct nlattr *) nlmsg_tail(msg->nm_nlh);
 
-	if (nla_put(msg, attrtype, 0, NULL) < 0)
+	if (nla_put(msg, NLA_F_NESTED | attrtype, 0, NULL) < 0)
 		return NULL;
 
 	NL_DBG(2, "msg %p: attr <%p> %d: starting nesting\n",
@@ -912,22 +905,14 @@ struct nlattr *nla_nest_start(struct nl_msg *msg, int attrtype)
 	return start;
 }
 
-/**
- * Finalize nesting of attributes.
- * @arg msg		Netlink message.
- * @arg start		Container attribute as returned from nla_nest_start().
- *
- * Corrects the container attribute header to include the appeneded attributes.
- *
- * @return 0 on success or a negative error code.
- */
-int nla_nest_end(struct nl_msg *msg, struct nlattr *start)
+static int _nest_end(struct nl_msg *msg, struct nlattr *start, int keep_empty)
 {
 	size_t pad, len;
 
-	len = (void *) nlmsg_tail(msg->nm_nlh) - (void *) start;
+	len = (char *) nlmsg_tail(msg->nm_nlh) - (char *) start;
 
-	if (len == NLA_HDRLEN || len > USHRT_MAX) {
+	if (   len > USHRT_MAX
+	    || (!keep_empty && len == NLA_HDRLEN)) {
 		/*
 		 * Max nlattr size exceeded or empty nested attribute, trim the
 		 * attribute header again
@@ -962,6 +947,35 @@ int nla_nest_end(struct nl_msg *msg, struct nlattr *start)
 }
 
 /**
+ * Finalize nesting of attributes.
+ * @arg msg		Netlink message.
+ * @arg start		Container attribute as returned from nla_nest_start().
+ *
+ * Corrects the container attribute header to include the appeneded attributes.
+ *
+ * @return 0 on success or a negative error code.
+ */
+int nla_nest_end(struct nl_msg *msg, struct nlattr *start)
+{
+	return _nest_end (msg, start, 0);
+}
+
+/**
+ * Finalize nesting of attributes without stripping off empty attributes.
+ * @arg msg		Netlink message.
+ * @arg start		Container attribute as returned from nla_nest_start().
+ *
+ * Corrects the container attribute header to include the appeneded attributes.
+ * Keep empty attribute if NO actual attribute payload exists.
+ *
+ * @return 0 on success or a negative error code.
+ */
+int nla_nest_end_keep_empty(struct nl_msg *msg, struct nlattr *start)
+{
+	return _nest_end (msg, start, 1);
+}
+
+/**
  * Cancel the addition of a nested attribute
  * @arg msg		Netlink message
  * @arg attr		Nested netlink attribute
@@ -974,7 +988,7 @@ void nla_nest_cancel(struct nl_msg *msg, const struct nlattr *attr)
 {
 	ssize_t len;
 
-	len = (void *) nlmsg_tail(msg->nm_nlh) - (void *) attr;
+	len = (char *) nlmsg_tail(msg->nm_nlh) - (char *) attr;
 	if (len < 0)
 		BUG();
 	else if (len > 0) {
@@ -997,7 +1011,7 @@ void nla_nest_cancel(struct nl_msg *msg, const struct nlattr *attr)
  * @return 0 on success or a negative error code.
  */
 int nla_parse_nested(struct nlattr *tb[], int maxtype, struct nlattr *nla,
-		     struct nla_policy *policy)
+		     const struct nla_policy *policy)
 {
 	return nla_parse(tb, maxtype, nla_data(nla), nla_len(nla), policy);
 }

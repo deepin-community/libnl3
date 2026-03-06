@@ -1,14 +1,8 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * test/tests-u32-with-actions.c     Add ingress qdisc, create some hash filters, and add redirect action
- *
- *      This library is free software; you can redistribute it and/or
- *      modify it under the terms of the GNU Lesser General Public
- *      License as published by the Free Software Foundation version 2.1
- *      of the License.
+ * Copyright (c) 2013 Cong Wang <xiyou.wangcong@gmail.com>
  *
  * Stolen from tests/test-complex-HTB-with-hash-filters.c
- *
- * Copyright (c) 2013 Cong Wang <xiyou.wangcong@gmail.com>
  */
 
 #include <netlink/route/link.h>
@@ -243,6 +237,7 @@ int main(void)
     int err;
     struct nl_cache *link_cache;
     struct rtnl_act *act, *act2;
+    uint32_t i;
 
     if (!(sock = nl_socket_alloc())) {
         printf("Unable to allocate netlink socket\n");
@@ -290,7 +285,6 @@ int main(void)
      * each entry in hash table match a byte from IP address specified later by a hash key
      */
 
-    uint32_t i;
     for (i = 1; i <= 0xf; i++) 
 	u32_add_ht(sock, link, 1, i, 256);
 

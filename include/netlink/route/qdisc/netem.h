@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/route/sch/netem.h		Network Emulator Qdisc
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2006 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -66,6 +60,7 @@ extern int rtnl_netem_get_delay_correlation(struct rtnl_qdisc *);
 /* Delay Distribution */
 #define MAXDIST 65536
 extern int rtnl_netem_set_delay_distribution(struct rtnl_qdisc *, const char *);
+extern int rtnl_netem_set_delay_distribution_data(struct rtnl_qdisc *, const int16_t *, size_t len);
 extern int rtnl_netem_get_delay_distribution_size(struct rtnl_qdisc *);
 extern int rtnl_netem_get_delay_distribution(struct rtnl_qdisc *, int16_t **);
 

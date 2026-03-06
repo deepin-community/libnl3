@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/cls/cgroup.c	Control Groups Classifier
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2009-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -34,9 +28,19 @@ static struct nla_policy cgroup_policy[TCA_CGROUP_MAX+1] = {
 	[TCA_CGROUP_EMATCHES]	= { .type = NLA_NESTED },
 };
 
-static int cgroup_clone(void *dst, void *src)
+static int cgroup_clone(void *_dst, void *_src)
 {
-	return -NLE_OPNOTSUPP;
+	struct rtnl_cgroup *dst = _dst, *src = _src;
+
+	dst->cg_ematch = NULL;
+
+	if (src->cg_ematch) {
+		dst->cg_ematch = rtnl_ematch_tree_clone(src->cg_ematch);
+		if (!dst->cg_ematch)
+			return -NLE_NOMEM;
+	}
+
+	return 0;
 }
 
 static void cgroup_free_data(struct rtnl_tc *tc, void *data)

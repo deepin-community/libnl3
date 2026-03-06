@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/route/cls/ematch.h		Extended Matches
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2008-2010 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -72,6 +66,8 @@ extern struct rtnl_ematch_tree *rtnl_ematch_tree_alloc(uint16_t);
 extern void			rtnl_ematch_tree_free(struct rtnl_ematch_tree *);
 extern void			rtnl_ematch_tree_add(struct rtnl_ematch_tree *,
 						     struct rtnl_ematch *);
+
+extern struct rtnl_ematch_tree *rtnl_ematch_tree_clone(struct rtnl_ematch_tree *);
 
 extern int			rtnl_ematch_parse_attr(struct nlattr *,
 						       struct rtnl_ematch_tree **);

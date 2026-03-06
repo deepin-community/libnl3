@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/route/neighbour.h	Neighbours
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2008 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -81,6 +75,9 @@ extern int			rtnl_neigh_get_family(struct rtnl_neigh *);
 
 extern void			rtnl_neigh_set_vlan(struct rtnl_neigh *, int);
 extern int			rtnl_neigh_get_vlan(struct rtnl_neigh *);
+
+extern void			rtnl_neigh_set_master(struct rtnl_neigh *, int);
+extern int			rtnl_neigh_get_master(struct rtnl_neigh *);
 
 #ifdef __cplusplus
 }

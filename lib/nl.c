@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/nl.c		Core Netlink Interface
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -681,7 +675,7 @@ int nl_recv(struct nl_sock *sk, struct sockaddr_nl *nla,
 	if (page_size == 0)
 		page_size = getpagesize() * 4;
 
-	iov.iov_len = sk->s_bufsize ? : page_size;
+	iov.iov_len = sk->s_bufsize ? sk->s_bufsize : page_size;
 	iov.iov_base = malloc(iov.iov_len);
 
 	if (!iov.iov_base) {
@@ -710,7 +704,7 @@ retry:
 			goto retry;
 		}
 
-		NL_DBG(4, "nl_sendmsg(%p): nl_recv() failed with %d (%s)\n",
+		NL_DBG(4, "recvmsg(%p): nl_recv() failed with %d (%s)\n",
 			sk, errno, nl_strerror_l(errno));
 		retval = -nl_syserr2nlerr(errno);
 		goto abort;

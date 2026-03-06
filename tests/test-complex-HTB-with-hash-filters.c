@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * test/test-complex-HTB-with-hash-filters.c     Add HTB qdisc, HTB classes and creates some hash filters
- *
- *      This library is free software; you can redistribute it and/or
- *      modify it under the terms of the GNU Lesser General Public
- *      License as published by the Free Software Foundation version 2.1
- *      of the License.
- *
  * Copyright (c) 2011 Adrian Ban <adrian.ban@mantech.ro>
  */
 
@@ -517,6 +511,8 @@ int main() {
 
     struct nl_cache *link_cache;
     
+    uint32_t i;
+
     if (!(sock = nl_socket_alloc())) {
         printf("Unable to allocate netlink socket\n");
         exit(1);
@@ -579,7 +575,6 @@ int main() {
      * each entry in hash table match a byte from IP address specified later by a hash key
      */
 
-    uint32_t i;
     for (i = 1; i <= 0xf; i++) 
 	u32_add_ht(sock, link, 1, i, 256);
 

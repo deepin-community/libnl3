@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/route_utils.c	Routing Utilities
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2006 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -62,7 +56,7 @@ static void __init init_routing_table_names(void)
 	add_routing_table_name(RT_TABLE_DEFAULT, "default");
 	add_routing_table_name(RT_TABLE_MAIN, "main");
 	add_routing_table_name(RT_TABLE_LOCAL, "local");
-};
+}
 
 static void __exit release_routing_table_names(void)
 {
@@ -108,7 +102,7 @@ static void __init init_proto_names(void)
 	add_proto_name(RTPROT_KERNEL, "kernel");
 	add_proto_name(RTPROT_BOOT, "boot");
 	add_proto_name(RTPROT_STATIC, "static");
-};
+}
 
 static void __exit release_proto_names(void)
 {
