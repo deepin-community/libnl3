@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/genl/genl.h		Generic Netlink
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -29,9 +23,9 @@ extern void *		genlmsg_put(struct nl_msg *, uint32_t, uint32_t,
 
 extern int		genlmsg_valid_hdr(struct nlmsghdr *, int);
 extern int		genlmsg_validate(struct nlmsghdr *, int, int,
-					 struct nla_policy *);
+					 const struct nla_policy *);
 extern int		genlmsg_parse(struct nlmsghdr *, int, struct nlattr **,
-				      int, struct nla_policy *);
+				      int, const struct nla_policy *);
 extern struct genlmsghdr *
 			genlmsg_hdr(struct nlmsghdr *);
 extern void *		genlmsg_data(const struct genlmsghdr *);

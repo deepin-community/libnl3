@@ -9,11 +9,9 @@ Signed-off-by: Heiko Stuebner <heiko@sntech.de>
  Makefile.am | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Makefile.am b/Makefile.am
-index 7747d16..4d3e1c0 100644
 --- a/Makefile.am
 +++ b/Makefile.am
-@@ -951,7 +951,7 @@ if ENABLE_CLI
+@@ -1070,7 +1070,7 @@
  pkgconfig_DATA += libnl-cli-3.0.pc
  endif
  
@@ -22,5 +20,3 @@ index 7747d16..4d3e1c0 100644
  pkgsysconf_DATA = \
  	etc/pktloc \
  	etc/classid
--- 
-tg: (38d147c..) debian/etc-libnl-3 (depends on: upstream-dist)

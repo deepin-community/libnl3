@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/genl/genl.c		Generic Netlink
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2012 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -150,7 +144,7 @@ int genlmsg_valid_hdr(struct nlmsghdr *nlh, int hdrlen)
  * @return 0 on success or a negative error code.
  */
 int genlmsg_validate(struct nlmsghdr *nlh, int hdrlen, int maxtype,
-		     struct nla_policy *policy)
+		     const struct nla_policy *policy)
 {
 	struct genlmsghdr *ghdr;
 
@@ -178,7 +172,7 @@ int genlmsg_validate(struct nlmsghdr *nlh, int hdrlen, int maxtype,
  * @code
  * struct nlattr *attrs[MY_TYPE_MAX+1];
  *
- * if ((err = genlsmg_parse(nlmsg_nlh(msg), sizeof(struct my_hdr), attrs,
+ * if ((err = genlmsg_parse(nlmsg_hdr(msg), sizeof(struct my_hdr), attrs,
  *                          MY_TYPE_MAX, attr_policy)) < 0)
  * 	// ERROR
  * @endcode
@@ -190,7 +184,7 @@ int genlmsg_validate(struct nlmsghdr *nlh, int hdrlen, int maxtype,
  * @return 0 on success or a negative error code.
  */
 int genlmsg_parse(struct nlmsghdr *nlh, int hdrlen, struct nlattr *tb[],
-		  int maxtype, struct nla_policy *policy)
+		  int maxtype, const struct nla_policy *policy)
 {
 	struct genlmsghdr *ghdr;
 
@@ -259,7 +253,7 @@ void *genlmsg_user_hdr(const struct genlmsghdr *gnlh)
  */
 void *genlmsg_user_data(const struct genlmsghdr *gnlh, const int hdrlen)
 {
-	return genlmsg_user_hdr(gnlh) + NLMSG_ALIGN(hdrlen);
+	return (char *) genlmsg_user_hdr(gnlh) + NLMSG_ALIGN(hdrlen);
 }
 
 /**
@@ -363,7 +357,7 @@ void *genlmsg_put(struct nl_msg *msg, uint32_t port, uint32_t seq, int family,
 	NL_DBG(2, "msg %p: Added generic netlink header cmd=%d version=%d\n",
 	       msg, cmd, version);
 
-	return nlmsg_data(nlh) + GENL_HDRLEN;
+	return (char *) nlmsg_data(nlh) + GENL_HDRLEN;
 }
 
 /** @} */

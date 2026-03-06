@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/link/sriov.c      SRIOV VF Info
- *
- *     This library is free software; you can redistribute it and/or
- *     modify it under the terms of the GNU Lesser General Public
- *     License as published by the Free Software Foundation version 2.1
- *     of the License.
- *
  * Copyright (c) 2016 Intel Corp. All rights reserved.
  * Copyright (c) 2016 Jef Oliver <jef.oliver@intel.com>
  */
@@ -92,7 +86,7 @@ int rtnl_link_sriov_clone(struct rtnl_link *dst, struct rtnl_link *src) {
 	nl_vf_vlans_t *src_vlans = NULL, *dst_vlans = NULL;
 	nl_vf_vlan_info_t *src_vlan_info = NULL, *dst_vlan_info = NULL;
 
-	if (!(err = rtnl_link_has_vf_list(src)))
+	if (!rtnl_link_has_vf_list(src))
 		return 0;
 
 	dst->l_vf_list = rtnl_link_vf_alloc();
@@ -109,8 +103,10 @@ int rtnl_link_sriov_clone(struct rtnl_link *dst, struct rtnl_link *src) {
 
 		if (s_vf->ce_mask & SRIOV_ATTR_ADDR) {
 			vf_addr = nl_addr_clone(s_vf->vf_lladdr);
-			if (!vf_addr)
+			if (!vf_addr) {
+				rtnl_link_vf_put(d_vf);
 				return -NLE_NOMEM;
+			}
 			d_vf->vf_lladdr = vf_addr;
 		}
 
@@ -120,12 +116,14 @@ int rtnl_link_sriov_clone(struct rtnl_link *dst, struct rtnl_link *src) {
 
 			err = rtnl_link_vf_vlan_alloc(&dst_vlans,
 						      src_vlans->size);
-			if (err < 0)
+			if (err < 0) {
+				rtnl_link_vf_put(d_vf);
 				return err;
+			}
 			dst_vlan_info = dst_vlans->vlans;
 			memcpy(dst_vlans, src_vlans, sizeof(nl_vf_vlans_t));
 			memcpy(dst_vlan_info, src_vlan_info,
-			       dst_vlans->size * sizeof(dst_vlan_info));
+			       dst_vlans->size * sizeof(*dst_vlan_info));
 			d_vf->vf_vlans = dst_vlans;
 		}
 
@@ -209,10 +207,9 @@ static void dump_vf_details(struct rtnl_link_vf *vf_data,
 /* Loop through SRIOV VF list dump details */
 void rtnl_link_sriov_dump_details(struct rtnl_link *link,
 				  struct nl_dump_params *p) {
-	int err;
 	struct rtnl_link_vf *vf_data, *list, *next;
 
-	if (!(err = rtnl_link_has_vf_list(link)))
+	if (!rtnl_link_has_vf_list(link))
 		BUG();
 
 	nl_dump(p, "    SRIOV VF List\n");
@@ -231,7 +228,7 @@ static void dump_vf_stats(struct rtnl_link_vf *vf_data,
 	char *unit;
 	float res;
 
-	nl_dump(p, "    VF %" PRIu64 " Stats:\n", vf_data->vf_index);
+	nl_dump(p, "    VF %u Stats:\n", vf_data->vf_index);
 	nl_dump_line(p, "\tRX:    %-14s %-10s   %-10s %-10s\n",
 		     "bytes", "packets", "multicast", "broadcast");
 
@@ -273,10 +270,9 @@ void rtnl_link_sriov_dump_stats(struct rtnl_link *link,
 
 /* Free stored SRIOV VF data */
 void rtnl_link_sriov_free_data(struct rtnl_link *link) {
-	int err = 0;
 	struct rtnl_link_vf *list, *vf, *next;
 
-	if (!(err = rtnl_link_has_vf_list(link)))
+	if (!rtnl_link_has_vf_list(link))
 		return;
 
 	list = link->l_vf_list;
@@ -558,8 +554,10 @@ int rtnl_link_sriov_parse_vflist(struct rtnl_link *link, struct nlattr **tb) {
 
 			vf_data->vf_lladdr = nl_addr_build(AF_LLC,
 							   vf_lladdr->mac, 6);
-			if (vf_data->vf_lladdr == NULL)
+			if (vf_data->vf_lladdr == NULL) {
+				rtnl_link_vf_put(vf_data);
 				return -NLE_NOMEM;
+			}
 			nl_addr_set_family(vf_data->vf_lladdr, AF_LLC);
 			vf_data->ce_mask |= SRIOV_ATTR_ADDR;
 		}
@@ -576,8 +574,10 @@ int rtnl_link_sriov_parse_vflist(struct rtnl_link *link, struct nlattr **tb) {
 
 			err = rtnl_link_vf_vlan_info(list_len, vf_vlan_info,
 						     &vf_vlans);
-			if (err < 0)
+			if (err < 0) {
+				rtnl_link_vf_put(vf_data);
 				return err;
+			}
 
 			vf_data->vf_vlans = vf_vlans;
 			vf_data->ce_mask |= SRIOV_ATTR_VLAN;
@@ -586,8 +586,10 @@ int rtnl_link_sriov_parse_vflist(struct rtnl_link *link, struct nlattr **tb) {
 
 			if (vf_vlan->vlan) {
 				err = rtnl_link_vf_vlan_alloc(&vf_vlans, 1);
-				if (err < 0)
+				if (err < 0) {
+					rtnl_link_vf_put(vf_data);
 					return err;
+				}
 
 				vf_vlans->vlans[0].vf_vlan = vf_vlan->vlan;
 				vf_vlans->vlans[0].vf_vlan_qos = vf_vlan->qos;
@@ -646,11 +648,13 @@ int rtnl_link_sriov_parse_vflist(struct rtnl_link *link, struct nlattr **tb) {
 		}
 
 		if (t[IFLA_VF_STATS]) {
-			err = nla_parse_nested(stb, IFLA_VF_STATS_MAX,
+			err = nla_parse_nested(stb, RTNL_LINK_VF_STATS_MAX,
 					       t[IFLA_VF_STATS],
 					       sriov_stats_policy);
-			if (err < 0)
+			if (err < 0) {
+				rtnl_link_vf_put(vf_data);
 				return err;
+			}
 
 			SET_VF_STAT(link, cur, stb,
 				    RTNL_LINK_VF_STATS_RX_PACKETS,
@@ -671,7 +675,7 @@ int rtnl_link_sriov_parse_vflist(struct rtnl_link *link, struct nlattr **tb) {
 				    RTNL_LINK_VF_STATS_MULTICAST,
 				    IFLA_VF_STATS_MULTICAST);
 
-			vf_data->ce_mask |= IFLA_VF_STATS;
+			vf_data->ce_mask |= SRIOV_ATTR_STATS;
 		}
 
 		if (t[IFLA_VF_TRUST]) {

@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/link/veth.c	Virtual Ethernet
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2013 Cong Wang <xiyou.wangcong@gmail.com>
  */
 
@@ -63,8 +57,8 @@ static int veth_parse(struct rtnl_link *link, struct nlattr *data,
 		peer->l_index = ifi->ifi_index;
 		peer->l_flags = ifi->ifi_flags;
 		peer->l_change = ifi->ifi_change;
-		err = nla_parse(peer_tb, IFLA_MAX,
-				nla_data(nla_peer) + sizeof(struct ifinfomsg),
+		err = nla_parse(peer_tb, IFLA_MAX, (struct nlattr *)
+		                ((char *) nla_data(nla_peer) + sizeof(struct ifinfomsg)),
 				nla_len(nla_peer) - sizeof(struct ifinfomsg),
 				rtln_link_policy);
 		if (err < 0)
@@ -213,11 +207,10 @@ static struct rtnl_link_info_ops veth_info_ops = {
 struct rtnl_link *rtnl_link_veth_alloc(void)
 {
 	struct rtnl_link *link;
-	int err;
 
 	if (!(link = rtnl_link_alloc()))
 		return NULL;
-	if ((err = rtnl_link_set_type(link, "veth")) < 0) {
+	if (rtnl_link_set_type(link, "veth") < 0) {
 		rtnl_link_put(link);
 		return NULL;
 	}
@@ -282,10 +275,10 @@ int rtnl_link_veth_add(struct nl_sock *sock, const char *name,
 		return -NLE_NOMEM;
 	peer = link->l_info;
 
-	if (name && peer_name) {
+	if (name)
 		rtnl_link_set_name(link, name);
+	if (peer_name)
 		rtnl_link_set_name(peer, peer_name);
-	}
 
 	rtnl_link_set_ns_pid(peer, pid);
 	err = rtnl_link_add(sock, link, NLM_F_CREATE | NLM_F_EXCL);

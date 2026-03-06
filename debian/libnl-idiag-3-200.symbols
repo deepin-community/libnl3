@@ -1,4 +1,5 @@
 libnl-idiag-3.so.200 libnl-idiag-3-200 #MINVER#
+* Build-Depends-Packages: libnl-idiag-3-dev, libnl3-dev
  idiagnl_attrs2str@Base 3.2.24
  idiagnl_connect@Base 3.2.24
  idiagnl_exts2str@Base 3.2.24

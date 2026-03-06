@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- *  lib/idiag/idiag.c    Inet Diag Netlink
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2013 Sassano Systems LLC <joe@sassanosystems.com>
  */
 
@@ -55,7 +49,8 @@ int idiagnl_connect(struct nl_sock *sk)
  * @arg flags	Message flags
  * @arg family	Address family
  * @arg states	Socket states to query
- * @arg ext	Inet Diag attribute extensions to query
+ * @arg ext	Inet Diag attribute extensions to query. Note that this only supports
+ *   8 bit arguments. Flags outside uint8_t range are silently ignored.
  *
  * @return 0 on success or a negative error code. Due to a bug, this function
  * returns the number of bytes sent. Treat any non-negative number as success.

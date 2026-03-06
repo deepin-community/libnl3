@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/attr.h		Netlink Attributes
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -89,7 +83,7 @@ extern int		nla_len(const struct nlattr *);
 extern int		nla_ok(const struct nlattr *, int);
 extern struct nlattr *	nla_next(const struct nlattr *, int *);
 extern int		nla_parse(struct nlattr **, int, struct nlattr *,
-				  int, struct nla_policy *);
+				  int, const struct nla_policy *);
 extern int		nla_validate(const struct nlattr *, int, int,
 				     const struct nla_policy *);
 extern struct nlattr *	nla_find(const struct nlattr *, int, int);
@@ -143,9 +137,10 @@ extern int		nla_put_nested(struct nl_msg *, int,
 				       const struct nl_msg *);
 extern struct nlattr *	nla_nest_start(struct nl_msg *, int);
 extern int		nla_nest_end(struct nl_msg *, struct nlattr *);
+extern int		nla_nest_end_keep_empty(struct nl_msg *, struct nlattr *);
 extern void		nla_nest_cancel(struct nl_msg *, const struct nlattr *);
 extern int		nla_parse_nested(struct nlattr **, int, struct nlattr *,
-					 struct nla_policy *);
+					 const struct nla_policy *);
 extern int		nla_is_nested(const struct nlattr *);
 
 /**

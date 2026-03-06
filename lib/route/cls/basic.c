@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/cls/basic.c	Basic Classifier
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2008-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -93,7 +87,7 @@ static int basic_msg_parser(struct rtnl_tc *tc, void *data)
 	if (tb[TCA_BASIC_ACT]) {
 		b->b_mask |= BASIC_ATTR_ACTION;
 		err = rtnl_act_parse(&b->b_act, tb[TCA_BASIC_ACT]);
-		if (err)
+		if (err < 0)
 			return err;
 	}
 
@@ -220,6 +214,7 @@ struct rtnl_ematch_tree *rtnl_basic_get_ematch(struct rtnl_cls *cls)
 int rtnl_basic_add_action(struct rtnl_cls *cls, struct rtnl_act *act)
 {
 	struct rtnl_basic *b;
+	int err;
 
 	if (!act)
 		return 0;
@@ -228,9 +223,12 @@ int rtnl_basic_add_action(struct rtnl_cls *cls, struct rtnl_act *act)
 		return -NLE_NOMEM;
 
 	b->b_mask |= BASIC_ATTR_ACTION;
+	if ((err = rtnl_act_append(&b->b_act, act)))
+		return err;
+
 	/* In case user frees it */
 	rtnl_act_get(act);
-	return rtnl_act_append(&b->b_act, act);
+	return 0;
 }
 
 struct rtnl_act* rtnl_basic_get_action(struct rtnl_cls *cls)

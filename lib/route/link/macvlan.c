@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/link/macvlan.c	MACVLAN Link Info
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2013 Michael Braun <michael-dev@fami-braun.de>
  */
 
@@ -36,29 +30,29 @@
 #include <linux/if_link.h>
 
 /** @cond SKIP */
-#define MACVLAN_HAS_MODE	(1<<0)
-#define MACVLAN_HAS_FLAGS	(1<<1)
-#define MACVLAN_HAS_MACADDR	(1<<2)
+#define MACVLAN_HAS_MODE        (1<<0)
+#define MACVLAN_HAS_FLAGS       (1<<1)
+#define MACVLAN_HAS_MACADDR     (1<<2)
 
 struct macvlan_info
 {
-	uint32_t		mvi_mode;
-	uint16_t		mvi_flags; // there currently is only one flag and kernel has no flags_mask yet
-	uint32_t		mvi_mask;
-	uint32_t		mvi_maccount;
-	uint32_t		mvi_macmode;
-	struct nl_addr		**mvi_macaddr;
+	uint32_t                mvi_mode;
+	uint16_t                mvi_flags; // there currently is only one flag and kernel has no flags_mask yet
+	uint32_t                mvi_mask;
+	uint32_t                mvi_maccount;
+	uint32_t                mvi_macmode;
+	struct nl_addr          **mvi_macaddr;
 };
 
 /** @endcond */
 
 static struct nla_policy macvlan_policy[IFLA_MACVLAN_MAX+1] = {
-	[IFLA_MACVLAN_MODE]	= { .type = NLA_U32 },
-	[IFLA_MACVLAN_FLAGS]	= { .type = NLA_U16 },
-	[IFLA_MACVLAN_MACADDR_MODE]	= { .type = NLA_U32 },
-	[IFLA_MACVLAN_MACADDR]		= { .type = NLA_UNSPEC },
-	[IFLA_MACVLAN_MACADDR_DATA]	= { .type = NLA_NESTED },
-	[IFLA_MACVLAN_MACADDR_COUNT]	= { .type = NLA_U32 },
+	[IFLA_MACVLAN_MODE]             = { .type = NLA_U32 },
+	[IFLA_MACVLAN_FLAGS]            = { .type = NLA_U16 },
+	[IFLA_MACVLAN_MACADDR_MODE]     = { .type = NLA_U32 },
+	[IFLA_MACVLAN_MACADDR]          = { .type = NLA_UNSPEC },
+	[IFLA_MACVLAN_MACADDR_DATA]     = { .type = NLA_NESTED },
+	[IFLA_MACVLAN_MACADDR_COUNT]    = { .type = NLA_U32 },
 };
 
 static int macvlan_alloc(struct rtnl_link *link)
@@ -108,7 +102,7 @@ static int macvlan_parse(struct rtnl_link *link, struct nlattr *data,
 	}
 
 	if (tb[IFLA_MACVLAN_FLAGS]) {
-		mvi->mvi_mode = nla_get_u16(tb[IFLA_MACVLAN_FLAGS]);
+		mvi->mvi_flags = nla_get_u16(tb[IFLA_MACVLAN_FLAGS]);
 		mvi->mvi_mask |= MACVLAN_HAS_FLAGS;
 	}
 
@@ -122,7 +116,11 @@ static int macvlan_parse(struct rtnl_link *link, struct nlattr *data,
 			len = nla_len(tb[IFLA_MACVLAN_MACADDR_DATA]);
 
 			mvi->mvi_macaddr = calloc(mvi->mvi_maccount,
-						  sizeof(*(mvi->mvi_macaddr)));
+			                          sizeof(*(mvi->mvi_macaddr)));
+			if (mvi->mvi_macaddr == NULL) {
+				err = -NLE_NOMEM;
+				goto errout;
+			}
 
 			i = 0;
 			for (; nla_ok(nla, len); nla = nla_next(nla, &len)) {
@@ -149,6 +147,8 @@ static void macvlan_free(struct rtnl_link *link)
 	uint32_t i;
 
 	mvi = link->l_info;
+	if (!mvi)
+		return;
 
 	for (i = 0; i < mvi->mvi_maccount; i++)
 		nl_addr_put(mvi->mvi_macaddr[i]);
@@ -158,7 +158,7 @@ static void macvlan_free(struct rtnl_link *link)
 	link->l_info = NULL;
 }
 
-static void macvlan_dump(struct rtnl_link *link, struct nl_dump_params *p)
+static void macvlan_dump_details(struct rtnl_link *link, struct nl_dump_params *p)
 {
 	char buf[64];
 	uint32_t i;
@@ -166,23 +166,26 @@ static void macvlan_dump(struct rtnl_link *link, struct nl_dump_params *p)
 
 	if (mvi->mvi_mask & MACVLAN_HAS_MODE) {
 		rtnl_link_macvlan_mode2str(mvi->mvi_mode, buf, sizeof(buf));
-		nl_dump(p, "%s-mode %s", link->l_info_ops->io_name, buf);
+		nl_dump(p, "    %s-mode %s", link->l_info_ops->io_name, buf);
 	}
 
 	if (mvi->mvi_mask & MACVLAN_HAS_FLAGS) {
 		rtnl_link_macvlan_flags2str(mvi->mvi_flags, buf, sizeof(buf));
-		nl_dump(p, "%s-flags %s", link->l_info_ops->io_name, buf);
+		nl_dump(p, " %s-flags %s", link->l_info_ops->io_name, buf);
 	}
 
 	if (mvi->mvi_mask & MACVLAN_HAS_MACADDR) {
-		nl_dump(p, "macvlan-count %u", (unsigned) mvi->mvi_maccount);
+		nl_dump(p, " macvlan-count %u", (unsigned) mvi->mvi_maccount);
+
+		if (mvi->mvi_maccount)
+			nl_dump(p, " macvlan-sourcemac");
 
 		for (i = 0; i < mvi->mvi_maccount; i++) {
-			nl_dump(p, "macvlan-sourcemac %s",
-				nl_addr2str(mvi->mvi_macaddr[i], buf,
-					    sizeof(buf)));
+			nl_dump(p, " %s", nl_addr2str(mvi->mvi_macaddr[i], buf,
+			        sizeof(buf)));
 		}
 	}
+	nl_dump(p, "\n");
 }
 
 static int macvlan_clone(struct rtnl_link *dst, struct rtnl_link *src)
@@ -204,7 +207,7 @@ static int macvlan_clone(struct rtnl_link *dst, struct rtnl_link *src)
 	if (   vsrc->mvi_mask & MACVLAN_HAS_MACADDR
 	    && vsrc->mvi_maccount > 0) {
 		vdst->mvi_macaddr = calloc(vdst->mvi_maccount,
-					   sizeof(*(vdst->mvi_macaddr)));
+		                           sizeof(*(vdst->mvi_macaddr)));
 		for (i = 0; i < vdst->mvi_maccount; i++)
 			vdst->mvi_macaddr[i] = nl_addr_clone(vsrc->mvi_macaddr[i]);
 	} else
@@ -238,7 +241,7 @@ static int macvlan_put_attrs(struct nl_msg *msg, struct rtnl_link *link)
 
 		for (i = 0; i < mvi->mvi_maccount; i++) {
 			NLA_PUT_ADDR(msg, IFLA_MACVLAN_MACADDR,
-				     mvi->mvi_macaddr[i]);
+			             mvi->mvi_macaddr[i]);
 		}
 	}
 
@@ -258,8 +261,7 @@ static struct rtnl_link_info_ops macvlan_info_ops = {
 	.io_alloc               = macvlan_alloc,
 	.io_parse               = macvlan_parse,
 	.io_dump = {
-		[NL_DUMP_LINE]    = macvlan_dump,
-		[NL_DUMP_DETAILS] = macvlan_dump,
+		[NL_DUMP_DETAILS] = macvlan_dump_details,
 	},
 	.io_clone               = macvlan_clone,
 	.io_put_attrs           = macvlan_put_attrs,
@@ -271,8 +273,7 @@ static struct rtnl_link_info_ops macvtap_info_ops = {
 	.io_alloc               = macvlan_alloc,
 	.io_parse               = macvlan_parse,
 	.io_dump = {
-		[NL_DUMP_LINE]    = macvlan_dump,
-		[NL_DUMP_DETAILS] = macvlan_dump,
+		[NL_DUMP_DETAILS] = macvlan_dump_details,
 	},
 	.io_clone               = macvlan_clone,
 	.io_put_attrs           = macvlan_put_attrs,
@@ -306,12 +307,11 @@ static struct rtnl_link_info_ops macvtap_info_ops = {
 struct rtnl_link *rtnl_link_macvlan_alloc(void)
 {
 	struct rtnl_link *link;
-	int err;
 
 	if (!(link = rtnl_link_alloc()))
 		return NULL;
 
-	if ((err = rtnl_link_set_type(link, "macvlan")) < 0) {
+	if (rtnl_link_set_type(link, "macvlan") < 0) {
 		rtnl_link_put(link);
 		return NULL;
 	}
@@ -321,7 +321,7 @@ struct rtnl_link *rtnl_link_macvlan_alloc(void)
 
 /**
  * Check if link is a MACVLAN link
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return True if link is a MACVLAN link, otherwise false is returned.
  */
@@ -332,8 +332,8 @@ int rtnl_link_is_macvlan(struct rtnl_link *link)
 
 /**
  * Set MACVLAN MODE
- * @arg link		Link object
- * @arg mode		MACVLAN mode
+ * @arg link            Link object
+ * @arg mode            MACVLAN mode
  *
  * @return 0 on success or a negative error code
  */
@@ -362,7 +362,7 @@ int rtnl_link_macvlan_set_mode(struct rtnl_link *link, uint32_t mode)
 
 /**
  * Get MACVLAN Mode
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return MACVLAN mode, 0 if not set or a negative error code.
  */
@@ -380,8 +380,8 @@ uint32_t rtnl_link_macvlan_get_mode(struct rtnl_link *link)
 
 /**
  * Set MACVLAN MACMODE
- * @arg link		Link object
- * @arg mode		MACVLAN mac list modification mode
+ * @arg link            Link object
+ * @arg mode            MACVLAN mac list modification mode
  *
  * Only for macvlan SOURCE mode.
  *
@@ -405,8 +405,8 @@ int rtnl_link_macvlan_set_macmode(struct rtnl_link *link, uint32_t macmode)
 
 /**
  * Get MACVLAN MACMODE
- * @arg link		Link object
- * @arg out_macmode	mac list modification mode
+ * @arg link            Link object
+ * @arg out_macmode     mac list modification mode
  *
  * Only for SOURCE mode.
  *
@@ -432,8 +432,8 @@ int rtnl_link_macvlan_get_macmode(struct rtnl_link *link, uint32_t *out_macmode)
 
 /**
  * Set MACVLAN flags
- * @arg link		Link object
- * @arg flags		MACVLAN flags
+ * @arg link            Link object
+ * @arg flags           MACVLAN flags
  *
  * @return 0 on success or a negative error code.
  */
@@ -451,8 +451,8 @@ int rtnl_link_macvlan_set_flags(struct rtnl_link *link, uint16_t flags)
 
 /**
  * Unset MACVLAN flags
- * @arg link		Link object
- * @arg flags		MACVLAN flags
+ * @arg link            Link object
+ * @arg flags           MACVLAN flags
  *
  * Note: kernel currently only has a single flag and lacks flags_mask to
  * indicate which flags shall be changed (it always all).
@@ -473,7 +473,7 @@ int rtnl_link_macvlan_unset_flags(struct rtnl_link *link, uint16_t flags)
 
 /**
  * Get MACVLAN flags
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return MACVLAN flags, 0 if none set, or a negative error code.
  */
@@ -488,8 +488,8 @@ uint16_t rtnl_link_macvlan_get_flags(struct rtnl_link *link)
 
 /**
  * Get number of MAC-Addr for MACVLAN device in source mode
- * @arg link		Link object
- * @arg out_count	number of mac addresses
+ * @arg link            Link object
+ * @arg out_count       number of mac addresses
  *
  * @return 0 on success or a negative error code.
  */
@@ -513,7 +513,7 @@ int rtnl_link_macvlan_count_macaddr(struct rtnl_link *link, uint32_t *out_count)
 
 /**
  * Get configured remote MAC-Addr from MACVLAN device in source mode
- * @arg link		Link object
+ * @arg link            Link object
  * @arg out_addr        address object
  *
  * The returned nl_addr struct needs NOT to be released using nl_addr_put.
@@ -523,7 +523,7 @@ int rtnl_link_macvlan_count_macaddr(struct rtnl_link *link, uint32_t *out_count)
  * @return 0 on success or negative error code
  */
 int rtnl_link_macvlan_get_macaddr(struct rtnl_link *link, uint32_t idx,
-				  const struct nl_addr **out_addr)
+                                  const struct nl_addr **out_addr)
 {
 	struct macvlan_info *mvi = link->l_info;
 
@@ -545,8 +545,8 @@ int rtnl_link_macvlan_get_macaddr(struct rtnl_link *link, uint32_t idx,
 
 /**
  * Add MAC-Addr to MACVLAN device in source mode
- * @arg link		Link object
- * @arg addr		MAC-Addr
+ * @arg link            Link object
+ * @arg addr            MAC-Addr
  *
  * addr is not release but cloned by this method.
  *
@@ -589,8 +589,8 @@ int rtnl_link_macvlan_add_macaddr(struct rtnl_link *link, struct nl_addr *addr)
 
 /**
  * Remove MAC-Addr from MACVLAN device in source mode
- * @arg link		Link object
- * @arg addr		MAC-Addr
+ * @arg link            Link object
+ * @arg addr            MAC-Addr
  *
  * addr is not release by this method.
  *
@@ -652,12 +652,11 @@ int rtnl_link_macvlan_del_macaddr(struct rtnl_link *link, struct nl_addr *addr)
 struct rtnl_link *rtnl_link_macvtap_alloc(void)
 {
 	struct rtnl_link *link;
-	int err;
 
 	if (!(link = rtnl_link_alloc()))
 		return NULL;
 
-	if ((err = rtnl_link_set_type(link, "macvtap")) < 0) {
+	if (rtnl_link_set_type(link, "macvtap") < 0) {
 		rtnl_link_put(link);
 		return NULL;
 	}
@@ -667,7 +666,7 @@ struct rtnl_link *rtnl_link_macvtap_alloc(void)
 
 /**
  * Check if link is a MACVTAP link
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return True if link is a MACVTAP link, otherwise false is returned.
  */
@@ -678,8 +677,8 @@ int rtnl_link_is_macvtap(struct rtnl_link *link)
 
 /**
  * Set MACVTAP MODE
- * @arg link		Link object
- * @arg mode		MACVTAP mode
+ * @arg link            Link object
+ * @arg mode            MACVTAP mode
  *
  * @return 0 on success or a negative error code
  */
@@ -697,7 +696,7 @@ int rtnl_link_macvtap_set_mode(struct rtnl_link *link, uint32_t mode)
 
 /**
  * Get MACVTAP Mode
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return MACVTAP mode, 0 if not set or a negative error code.
  */
@@ -715,8 +714,8 @@ uint32_t rtnl_link_macvtap_get_mode(struct rtnl_link *link)
 
 /**
  * Set MACVTAP flags
- * @arg link		Link object
- * @arg flags		MACVTAP flags
+ * @arg link            Link object
+ * @arg flags           MACVTAP flags
  *
  * @return 0 on success or a negative error code.
  */
@@ -734,8 +733,8 @@ int rtnl_link_macvtap_set_flags(struct rtnl_link *link, uint16_t flags)
 
 /**
  * Unset MACVTAP flags
- * @arg link		Link object
- * @arg flags		MACVTAP flags
+ * @arg link            Link object
+ * @arg flags           MACVTAP flags
  *
  * Note: kernel currently only has a single flag and lacks flags_mask to
  * indicate which flags shall be changed (it always all).
@@ -756,7 +755,7 @@ int rtnl_link_macvtap_unset_flags(struct rtnl_link *link, uint16_t flags)
 
 /**
  * Get MACVTAP flags
- * @arg link		Link object
+ * @arg link            Link object
  *
  * @return MACVTAP flags, 0 if none set, or a negative error code.
  */
@@ -836,7 +835,7 @@ int rtnl_link_macvlan_str2mode(const char *name)
 char *rtnl_link_macvlan_macmode2str(int mode, char *buf, size_t len)
 {
 	return __type2str(mode, buf, len, macvlan_macmodes,
-			  ARRAY_SIZE(macvlan_macmodes));
+	                  ARRAY_SIZE(macvlan_macmodes));
 }
 
 int rtnl_link_macvlan_str2macmode(const char *name)

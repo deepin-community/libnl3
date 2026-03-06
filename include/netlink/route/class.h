@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * netlink/route/class.h       Traffic Classes
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2003-2011 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -30,6 +24,9 @@ extern int		rtnl_class_alloc_cache(struct nl_sock *, int,
 					       struct nl_cache **);
 extern struct rtnl_class *
 			rtnl_class_get(struct nl_cache *, int, uint32_t);
+
+extern struct rtnl_class *
+			rtnl_class_get_by_parent(struct nl_cache *, int, uint32_t);
 
 extern struct rtnl_qdisc *
 			rtnl_class_leaf_qdisc(struct rtnl_class *,

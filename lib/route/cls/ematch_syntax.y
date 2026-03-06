@@ -1,11 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /*
- * lib/route/cls/ematch_syntax.y	ematch expression syntax
- *
- *	This library is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Lesser General Public
- *	License as published by the Free Software Foundation version 2.1
- *	of the License.
- *
  * Copyright (c) 2010-2013 Thomas Graf <tgraf@suug.ch>
  */
 
@@ -52,6 +46,7 @@
 %{
 extern int ematch_lex(YYSTYPE *, void *);
 
+#define ematch_error yyerror
 static void yyerror(void *scanner, char **errp, struct nl_list_head *root, const char *msg)
 {
 	if (msg)
@@ -376,7 +371,7 @@ meta_int_id:
 	| META_SK_ERR_QLEN		{ $$ = META_ID(SK_ERR_QLEN); }
 	| META_SK_FORWARD_ALLOCS	{ $$ = META_ID(SK_FORWARD_ALLOCS); }
 	| META_SK_ALLOCS		{ $$ = META_ID(SK_ALLOCS); }
-	| META_SK_ROUTE_CAPS		{ $$ = META_ID(SK_ROUTE_CAPS); }
+	| META_SK_ROUTE_CAPS		{ $$ = __TCF_META_ID_SK_ROUTE_CAPS; }
 	| META_SK_HASH			{ $$ = META_ID(SK_HASH); }
 	| META_SK_LINGERTIME		{ $$ = META_ID(SK_LINGERTIME); }
 	| META_SK_ACK_BACKLOG		{ $$ = META_ID(SK_ACK_BACKLOG); }

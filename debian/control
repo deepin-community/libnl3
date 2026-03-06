@@ -2,12 +2,17 @@ Source: libnl3
 Section: net
 Priority: optional
 Maintainer: Heiko Stuebner <mmind@debian.org>
-Build-Depends: debhelper (>= 9), dh-exec (>= 0.3), cdbs (>= 0.4.93~), bison, flex,
- automake, autoconf, dh-autoreconf, linux-libc-dev (>= 3.2.41), pkg-config
-Standards-Version: 4.1.4
-Homepage: http://www.infradead.org/~tgr/libnl/
-#Vcs-Git: git://anonscm.debian.org/collab-maint/libnl3.git
-#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/libnl3.git/
+Uploaders: Chris Hofstaedtler <zeha@debian.org>
+Build-Conflicts: check
+Build-Depends: debhelper-compat (= 13),
+               bison,
+               flex,
+               linux-libc-dev (>= 3.2.41),
+               pkgconf
+Standards-Version: 4.7.2
+Vcs-Git: https://salsa.debian.org/debian/libnl3.git
+Vcs-Browser: https://salsa.debian.org/debian/libnl3
+Homepage: https://github.com/thom311/libnl
 
 Package: libnl-3-200
 Architecture: linux-any
@@ -15,7 +20,7 @@ Section: libs
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Multi-Arch: same
-Description: library for dealing with netlink sockets 
+Description: library for dealing with netlink sockets
  This is a library for applications dealing with netlink sockets.
  The library provides an interface for raw netlink messaging and various
  netlink family specific interfaces.
@@ -133,8 +138,8 @@ Section: libdevel
 Depends: libnl-3-dev (= ${binary:Version}), libnl-genl-3-dev (= ${binary:Version}), libnl-nf-3-dev (= ${binary:Version}), libnl-route-3-dev (= ${binary:Version}), libnl-cli-3-200 (= ${binary:Version}), ${misc:Depends}
 Multi-Arch: same
 Description: development library and headers for libnl-cli-3
- This is a library for applications dealing with netlink sockets. 
- The library provides an interface for raw netlink messaging and various 
+ This is a library for applications dealing with netlink sockets.
+ The library provides an interface for raw netlink messaging and various
  netlink family specific interfaces.
  .
  This package contains the files that are needed to build applications using
@@ -205,26 +210,12 @@ Description: development library and headers for libnl-xfrm-3
  This package contains the files that are needed to build applications using
  libnl-xfrm-3.
 
-Package: libnl-3-200-dbg
-Architecture: linux-any
-Section: debug
-Depends: libnl-3-200 (= ${binary:Version}), ${misc:Depends}
-Description: debug symbols for libnl3
- This is a library for applications dealing with netlink sockets.
- The library provides an interface for raw netlink messaging and various
- netlink family specific interfaces.
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
-
 Package: libnl-3-200-udeb
 Architecture: linux-any
-XC-Package-Type: udeb
+Package-Type: udeb
 Section: debian-installer
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: library for dealing with netlink sockets 
+Description: library for dealing with netlink sockets
  This is a library for applications dealing with netlink sockets.
  The library provides an interface for raw netlink messaging and various
  netlink family specific interfaces.
@@ -233,7 +224,7 @@ Description: library for dealing with netlink sockets
 
 Package: libnl-genl-3-200-udeb
 Architecture: linux-any
-XC-Package-Type: udeb
+Package-Type: udeb
 Section: debian-installer
 Depends: libnl-3-200-udeb (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
 Description: library for dealing with netlink sockets - generic netlink

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 
 #include <netlink-private/netlink.h>
 #include <netlink-private/types.h>
@@ -18,18 +19,25 @@ static struct lwtunnel_encap_type {
 
 static const char *nh_encap_type2str(unsigned int type)
 {
+	const char *name;
+
 	if (type > LWTUNNEL_ENCAP_MAX)
 		return "unknown";
 
-	return lwtunnel_encap_types[type].name ? : "unknown";
+	name = lwtunnel_encap_types[type].name;
+
+	return name ? name : "unknown";
 }
 
 void nh_encap_dump(struct rtnl_nh_encap *rtnh_encap, struct nl_dump_params *dp)
 {
+	if (!rtnh_encap->ops)
+		return;
+
 	nl_dump(dp, " encap %s ",
 		nh_encap_type2str(rtnh_encap->ops->encap_type));
 
-	if (rtnh_encap->ops && rtnh_encap->ops->dump)
+	if (rtnh_encap->ops->dump)
 		rtnh_encap->ops->dump(rtnh_encap->priv, dp);
 }
 
@@ -50,7 +58,7 @@ int nh_encap_build_msg(struct nl_msg *msg, struct rtnl_nh_encap *rtnh_encap)
 		goto nla_put_failure;
 
 	err = rtnh_encap->ops->build_msg(msg, rtnh_encap->priv);
-	if (err)
+	if (err < 0)
 		return err;
 
 	nla_nest_end(msg, encap);
